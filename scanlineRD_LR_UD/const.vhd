@@ -6,14 +6,14 @@ use IEEE.std_logic_unsigned.all;
 package const is
 
 
-constant dmax	  	: integer := 64;
+constant dmax	  	: integer := 16;
 constant P1			: integer := 10; 
 constant P2			: integer := 40;  
 constant scale 	: integer := 10;
---constant Width 	: integer := 384;
---constant Hight	: integer := 288;
-constant Width 	: integer := 640;
-constant Hight		: integer := 480;
+constant Width 	: integer := 384;
+constant Hight	: integer := 288;
+--constant Width 	: integer := 640;
+--constant Hight		: integer := 480;
 
 constant ADDR_WIDTH	: integer := 10;  
 constant DATA_WIDTH	: integer := 8;
