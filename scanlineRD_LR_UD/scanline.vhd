@@ -335,6 +335,9 @@ begin
 	end if;
 end process DISP3;
 
+DISP0 : process(PIPELINE_CLOCK) is	
+begin
+end process DISP3;
 
 
 DISP : process(PIPELINE_CLOCK) is	
