@@ -76,14 +76,19 @@ architecture Behavioral of scanline is
 	signal GLOBAL_COST 		: GlobalCosts_array;
 	signal GLOBAL_COST3 		: GlobalCosts_array;
 	signal GLOBAL_COST_PREV	: GlobalCosts_array;
-	signal GLOBAL_COST_MIN	: GlobalCosts_array;
-	signal MIN_OUT				: int_64;
+--	signal GLOBAL_COST_MIN	: GlobalCosts_array;
+--	signal MIN_OUT				: int_64;
 	signal LINE_RIGHT 		: Line_array;
 	signal LEFT_RL				: pixel;
 	signal DD					: std_logic_vector(5 downto 0);
 	signal I						: std_logic_vector(1 downto 0);
 	signal J						: int_640;
 	signal FIRST_LINE			: std_logic;
+	signal GC00					: GC_array;
+	signal GC01					: GC_array;
+	signal GC1 					: GC_array;
+	signal d0 					: int_64;
+	signal d1 					: int_64;
 	
 begin
 --
@@ -335,18 +340,37 @@ begin
 	end if;
 end process DISP3;
 
-DISP0 : process(PIPELINE_CLOCK) is	
-begin
-end process DISP3;
+--DISP0 : process(PIPELINE_CLOCK) is	
+--	variable GlobalCost5 : GlobalCosts_array;
+--begin
+--	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
+--		if RESET = '1' or FRAME_VALID_IN = '0' then
+--			GlobalCost5		:= (others =>(others => '0'));
+--		elsif LINE_VALID_IN = '1' then
+--			if(i = "10") then
+--				GlobalCost5 := GLOBAL_COST3;
+--			else
+--				GlobalCost5 := GLOBAL_COST;
+--			end if;
+--
+--			d := 0;
+--			for k in 0 to  (dmax - 1)/3  loop
+--				if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
+--					d := k;
+--				end if;
+--			end loop;
+--		end if;
+--	end if;
+--end process DISP0;
 
-
+ 
 DISP : process(PIPELINE_CLOCK) is	
 	variable d	: int_64;
-	variable GlobalCost5 : GlobalCosts_array;
-	variable GlobalCost_disp : 			GlobalCosts_array_disp;
-	variable GlobalCost_disp3 : 			GlobalCosts_array_disp;
-	variable d_disp : d_disp_array;
-	variable d_disp3 : d_disp_array;
+	variable GlobalCost5					: GlobalCosts_array;
+	variable GlobalCost_disp			: GlobalCosts_array_disp;
+	variable GlobalCost_disp3			: GlobalCosts_array_disp;
+	variable d_disp						: d_disp_array;
+	variable d_disp3						: d_disp_array;
 begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or FRAME_VALID_IN = '0' then
@@ -362,6 +386,12 @@ begin
 			DINDRD_A	<=	(others => '0');
 			DIND_A	<= (others => '0');
 			
+--			GC00	<= (others =>(others => '0'));
+--			GC01	<= (others =>(others => '0'));
+--			GC1	<= (others =>(others => '0'));
+--			d0		<= 0;
+--			d1		<= 0;
+			
 
 		elsif LINE_VALID_IN = '1'    then
 				LINE_VALID_OUT <= '1';
@@ -372,12 +402,65 @@ begin
 					GlobalCost5 := GLOBAL_COST;
 				end if;
 			
+--			
+--
+--				d := 0;
+--				for k in 0 to  (dmax - 1) / 3 loop
+--					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
+--						d := k;
+--					end if;
+--				end loop;
+--				d0 <= d;
+--				
+--				for k in 0 to  (dmax - 1) / 3 - 1 loop
+--					GC00(k) <=  GlobalCost5(k + (dmax - 1) / 3 + 1);
+--					GC01(k) <=  GlobalCost5(k + 2 * (dmax - 1) / 3 + 1);				
+--				end loop;
+--				
+--				GC00((dmax - 1) / 3) <= GlobalCost5(d);
+--				
+--				d := 0;
+--				for k in 0 to (dmax - 1)/3 loop
+--					if(comparator1(GC00(d), GC00(k))) then
+--						d := k;
+--					end if;
+--				end loop;
+--				
+--				GC1 <= GC01;
+--				GC1((dmax - 1) / 3) <= GC00(d);
+--				
+--				if d = (dmax - 1)/3 then
+--					d1 <= d0;
+--				else
+--					d1 <= (dmax - 1) / 3 + 1 + d;
+--				end if;
+--						
+--				
+--				d := 0;
+--				for k in 0 to  (dmax - 1)/3 loop
+--					if(comparator1(GC1(d), GC1(k))) then
+--						d := k;
+--					end if;
+--				end loop;
+--
+--				if d = (dmax - 1)/3 then
+--					d := d1;
+--				else
+--					d := 2 * (dmax - 1) / 3 + 1 + d;
+--				end if;
+--
+
+
+
+
 				d := 0;
 				for k in 0 to  dmax - 1 loop
 					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
 						d := k;
 					end if;
 				end loop;
+
+
 				
 				d_disp(conv_integer(i)) := d;		-- 00 LR // 01 UD // 10 OUT // 11 RD	
 				
