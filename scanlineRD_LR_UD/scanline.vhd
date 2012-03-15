@@ -21,12 +21,12 @@ end scanline;
 
 architecture Behavioral of scanline is
 
---	component Minimum is
---	port (
---		GlobalCost	: 	in GlobalCosts_array;
---		disp		: 	out int_64
---	);
---	end component;
+	component Minimum is
+	port (
+		GlobalCost	: 	in GlobalCosts_array;
+		disp		: 	out int_64
+	);
+	end component;
 
 
 	component BRAM_RF is
@@ -76,8 +76,8 @@ architecture Behavioral of scanline is
 	signal GLOBAL_COST 		: GlobalCosts_array;
 	signal GLOBAL_COST3 		: GlobalCosts_array;
 	signal GLOBAL_COST_PREV	: GlobalCosts_array;
---	signal GLOBAL_COST_MIN	: GlobalCosts_array;
---	signal MIN_OUT				: int_64;
+	signal GLOBAL_COST_MIN	: GlobalCosts_array;
+	signal MIN_OUT				: int_64;
 	signal LINE_RIGHT 		: Line_array;
 	signal LEFT_RL				: pixel;
 	signal DD					: std_logic_vector(5 downto 0);
@@ -91,13 +91,13 @@ architecture Behavioral of scanline is
 	signal d1 					: int_64;
 	
 begin
---
---	min : Minimum
---	port map(
---		GlobalCost	=> GLOBAL_COST_MIN,
---		disp		=> 	MIN_OUT
---	);
---	
+
+	min : Minimum
+	port map(
+		GlobalCost	=> GLOBAL_COST_MIN,
+		disp		=> 	MIN_OUT
+	);
+	
 	BRAM_loop : for k in 0 to dmax - 1 generate
 	begin
 		BramUD : BRAM_RF
@@ -377,7 +377,8 @@ begin
 			LINE_VALID_OUT <= '0';
 			
 			dd <= (others => '0');			
-			GlobalCost5		:= (others =>(others => '0'));
+			GlobalCost5			:= (others =>(others => '0'));
+			GLOBAL_COST_MIN	<= (others =>(others => '0'));
 			i <= "00";
 						
 			d_disp := (others => 0);
@@ -386,24 +387,30 @@ begin
 			DINDRD_A	<=	(others => '0');
 			DIND_A	<= (others => '0');
 			
---			GC00	<= (others =>(others => '0'));
---			GC01	<= (others =>(others => '0'));
---			GC1	<= (others =>(others => '0'));
---			d0		<= 0;
---			d1		<= 0;
+			GC00	<= (others =>(others => '0'));
+			GC01	<= (others =>(others => '0'));
+			GC1	<= (others =>(others => '0'));
+			d0		<= 0;
+			d1		<= 0;
 			
 
 		elsif LINE_VALID_IN = '1'    then
 				LINE_VALID_OUT <= '1';
 				
-				if(i = "10") then
-					GlobalCost5 := GLOBAL_COST3;
+--				if(i = "10") then
+--					GlobalCost5 := GLOBAL_COST3;
+--				else
+--					GlobalCost5 := GLOBAL_COST;
+--				end if;
+			
+			if(i = "10") then
+					GLOBAL_COST_MIN <= GLOBAL_COST3;
 				else
-					GlobalCost5 := GLOBAL_COST;
+					GLOBAL_COST_MIN <= GLOBAL_COST;
 				end if;
 			
---			
---
+			
+
 --				d := 0;
 --				for k in 0 to  (dmax - 1) / 3 loop
 --					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
@@ -449,20 +456,21 @@ begin
 --					d := 2 * (dmax - 1) / 3 + 1 + d;
 --				end if;
 --
+--
+--
 
 
-
-
-				d := 0;
-				for k in 0 to  dmax - 1 loop
-					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
-						d := k;
-					end if;
-				end loop;
+				d := MIN_OUT;
+--				d := 0;
+--				for k in 0 to  dmax - 1 loop
+--					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
+--						d := k;
+--					end if;
+--				end loop;
 
 
 				
-				d_disp(conv_integer(i)) := d;		-- 00 LR // 01 UD // 10 OUT // 11 RD	
+				d_disp(conv_integer(i - 1)) := d;		-- 00 LR // 01 UD // 10 OUT // 11 RD	--// LR //UD//  OUT// RD
 				
 				DIND_A <= conv_std_logic_vector(d_disp(1), 6);
 				DATA_OUT <= conv_std_logic_vector(d_disp(2), 4) & "0000";
