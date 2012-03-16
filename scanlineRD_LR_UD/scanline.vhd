@@ -20,20 +20,12 @@ entity scanline is
 end scanline;
 
 architecture Behavioral of scanline is
-
-	component Minimum is
-	port (
-		GlobalCost	: 	in GlobalCosts_array;
-		disp		: 	out int_64
-	);
-	end component;
-
-
+	
 	component BRAM_RF is
 	generic (N: integer);
 	port (
 		CLK		: in std_logic;
-		WE			: in std_logic;
+		WE		: in std_logic;
 		ADDR_A	: in std_logic_vector (ADDR_WIDTH - 1 downto 0);
 		ADDR_B	: in std_logic_vector (ADDR_WIDTH - 1 downto 0);
 		DIN_A		: in std_logic_vector (N - 1 downto 0 );
@@ -43,7 +35,7 @@ architecture Behavioral of scanline is
 
 	signal ADDRRD_A	: Address_Width_array;
 	signal ADDRRD_B	: Address_Width_array;
-	signal DINRD_A		: GlobalCosts_array;
+	signal DINRD_A	: GlobalCosts_array;
 	signal DOUTRD_B	: GlobalCosts_array;
 
 	signal ADDRDRD_A	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
@@ -53,7 +45,7 @@ architecture Behavioral of scanline is
 	
 	signal ADDRUD_A	: Address_Width_array;
 	signal ADDRUD_B	: Address_Width_array;
-	signal DINUD_A		: GlobalCosts_array;
+	signal DINUD_A	: GlobalCosts_array;
 	signal DOUTUD_B	: GlobalCosts_array;
 
 	signal ADDRD_A	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
@@ -74,40 +66,33 @@ architecture Behavioral of scanline is
 
 	signal LOCAL_COST 		: GlobalCosts_array;
 	signal GLOBAL_COST 		: GlobalCosts_array;
-	signal GLOBAL_COST3 		: GlobalCosts_array;
 	signal GLOBAL_COST_PREV	: GlobalCosts_array;
-	signal GLOBAL_COST_MIN	: GlobalCosts_array;
-	signal MIN_OUT				: int_64;
 	signal LINE_RIGHT 		: Line_array;
-	signal LEFT_RL				: pixel;
-	signal DD					: std_logic_vector(5 downto 0);
-	signal I						: std_logic_vector(1 downto 0);
-	signal J						: int_640;
-	signal FIRST_LINE			: std_logic;
-	signal GC00					: GC_array;
-	signal GC01					: GC_array;
-	signal GC1 					: GC_array;
-	signal d0 					: int_64;
-	signal d1 					: int_64;
+	signal LEFT_RL			: pixel;
+	signal DD				: std_logic_vector(5 downto 0);
+	signal I				: std_logic_vector(1 downto 0);
+	signal J				: int_640;
+	signal FIRST_LINE		: std_logic;
 	
+	signal GLOBAL_COST_TRE	: GlobalCosts_array;
+	
+	signal DPL0             : d_pl0_array;
+	signal DPL1             : d_pl1_array;
+	signal GC0              : GC0_array;
+	signal GC1              : GC1_array;
+
 begin
 
-	min : Minimum
-	port map(
-		GlobalCost	=> GLOBAL_COST_MIN,
-		disp		=> 	MIN_OUT
-	);
-	
 	BRAM_loop : for k in 0 to dmax - 1 generate
 	begin
 		BramUD : BRAM_RF
 		generic map (N => 8)
 		port map(
 			CLK		=> PIXEL_CLOCK,
-			WE			=> '1',
+			WE		=> '1',
 			ADDR_A	=> ADDRUD_A(k),
 			ADDR_B	=> ADDRUD_B(k),
-			DIN_A		=> DINUD_A(k),
+			DIN_A	=> DINUD_A(k),
 			DOUT_B	=> DOUTUD_B(k)
 		);
 		
@@ -115,33 +100,33 @@ begin
 		generic map (N => 8)
 		port map(
 			CLK		=> PIXEL_CLOCK,
-			WE			=> '1',
+			WE		=> '1',
 			ADDR_A	=> ADDRRD_A(k),
 			ADDR_B	=> ADDRRD_B(k),
-			DIN_A		=> DINRD_A(k),
+			DIN_A	=> DINRD_A(k),
 			DOUT_B	=> DOUTRD_B(k)
 		);
 	end generate BRAM_loop;
 
-	BramLineDispUD : BRAM_RF
+	LineDispUD : BRAM_RF
 	generic map (N => 6)
 	port map(
 		CLK		=> PIXEL_CLOCK,
-		WE			=> '1',
+		WE		=> '1',
 		ADDR_A	=> ADDRD_A,
 		ADDR_B	=> ADDRD_B,
-		DIN_A		=> DIND_A,
+		DIN_A	=> DIND_A,
 		DOUT_B	=> DOUTD_B 
 	);
 
-	BramLineDispRD : BRAM_RF
+	LineDispRD : BRAM_RF
 	generic map (N => 6)
 	port map(
 		CLK		=> PIXEL_CLOCK,
-		WE			=>'1',
+		WE		=>'1',
 		ADDR_A	=> ADDRDRD_A,
 		ADDR_B	=> ADDRDRD_B,
-		DIN_A		=> DINDRD_A,
+		DIN_A	=> DINDRD_A,
 		DOUT_B	=> DOUTDRD_B 
 	);
 
@@ -159,15 +144,16 @@ begin
 			FIRST_LINE	<= '1';
 			LineRightLR := (others =>(others => '0'));
 			
-			ADDRRD_B <=(others =>	conv_std_logic_vector(0,ADDR_WIDTH));
-			ADDRRD_A <=(others =>	conv_std_logic_vector(0,ADDR_WIDTH));			
-			ADDRDRD_A	<=	conv_std_logic_vector(0, ADDR_WIDTH);					
-			ADDRDRD_B	<=	conv_std_logic_vector(0, ADDR_WIDTH);					
-
-			ADDRUD_B <=(others =>  conv_std_logic_vector(0,ADDR_WIDTH));
-			ADDRUD_A <=(others => conv_std_logic_vector(0,ADDR_WIDTH));
-			ADDRD_B	<=conv_std_logic_vector(0, ADDR_WIDTH);
-			ADDRD_A	<=conv_std_logic_vector(0, ADDR_WIDTH);
+			ADDRRD_B	<=(others =>(others => '0'));
+			ADDRRD_A	<=(others =>(others => '0'));
+			ADDRDRD_A	<= (others => '0');
+			ADDRDRD_B	<= (others => '0');
+			
+			
+			ADDRUD_B	<=(others =>(others => '0'));
+			ADDRUD_A	<=(others =>(others => '0'));
+			ADDRD_B		<=(others => '0');
+			ADDRD_A		<=(others => '0');
 			
 		else
 			if FRAME_VALID_IN = '1' then
@@ -179,23 +165,20 @@ begin
 					j <= j + 1;
 					
 					ADDRUD_B <=(others =>  conv_std_logic_vector(j + 1,ADDR_WIDTH));
-					ADDRUD_A <=(others => conv_std_logic_vector(j - 1,ADDR_WIDTH));
-					
+					ADDRUD_A <=(others => conv_std_logic_vector(j - 1,ADDR_WIDTH));					
 					ADDRD_B <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
-					ADDRD_A <=conv_std_logic_vector(j - 1, ADDR_WIDTH);
-
+					ADDRD_A <=conv_std_logic_vector(j - 1, ADDR_WIDTH);					
 
 					ADDRRD_B <=(others =>	conv_std_logic_vector(j + 2,ADDR_WIDTH));
-					ADDRRD_A <=(others =>	conv_std_logic_vector(j - 1,ADDR_WIDTH));
-					
+					ADDRRD_A <=(others =>	conv_std_logic_vector(j - 1,ADDR_WIDTH));					
 					ADDRDRD_A	<=	conv_std_logic_vector(j - 1, ADDR_WIDTH);					
 					ADDRDRD_B	<=	conv_std_logic_vector(j + 2, ADDR_WIDTH);
-
+					
 					if first_line = '1' then
+						ADDRRD_A	<= (others =>	conv_std_logic_vector(j + 2,ADDR_WIDTH));
+						ADDRDRD_A	<=	conv_std_logic_vector(j + 2, ADDR_WIDTH);
 						ADDRUD_A <=(others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
 						ADDRD_A <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
-						ADDRRD_A <=(others =>	conv_std_logic_vector(j + 2,ADDR_WIDTH));
-						ADDRDRD_A	<=	conv_std_logic_vector(j + 2, ADDR_WIDTH);
 					end if;
 					
 				else
@@ -299,201 +282,309 @@ begin
 	end if; --PIXEL_CLOCK
 end process EXDmax;
 
-
-
-DISP3 : process(PIPELINE_CLOCK) is
-	variable GlobalCost3 : GlobalCosts_array;
-	variable GlobalCost_disp : 			GlobalCosts_array_disp;
-	variable GlobalCost_disp3 : 			GlobalCosts_array_disp;
+PL0 : for k in 0 to dmax/4 - 1 generate
 begin
-	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
-		if RESET = '1' or FRAME_VALID_IN = '0' then
-			GlobalCost3		:= (others =>(others => '0'));
-			GlobalCost_disp := (others =>(others =>(others => '0')));
-			GlobalCost_disp3 := (others =>(others =>(others => '0')));
-			GLOBAL_COST_PREV <= (others => (others => '0'));
-			GLOBAL_COST3 <= (others => (others => '0'));
-
-			DINRD_A 	<= (others =>(others => '0'));
-			DINUD_A <=  (others =>(others => '0'));
-		elsif LINE_VALID_IN = '1' then		
-				
-				if first_line = '0' then
-					GlobalCost_disp3(3) := DOUTUD_B;		
-					GlobalCost_disp3(1) := DOUTRD_B;
-				end if;
-		
-				GlobalCost_disp(conv_integer(i)) := GLOBAL_COST;
-
-				DINUD_A <= GlobalCost_disp(1);
-				DINRD_A <= GlobalCost_disp(3);
-				GlobalCost_disp3(2) := GlobalCost_disp(0);				
-				GLOBAL_COST_PREV <= GlobalCost_disp3(conv_integer(i));
+	DPL00 : process(PIPELINE_CLOCK) is      
+	variable d				: int_64;
+	variable GlobalCost	: GlobalCosts_array;
+	begin
+		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
+			if RESET = '1' then
+				dpl0(k) <= 0;
+				GC0(k)  <= (others => '0');
+				GlobalCost := (others => (others => '0'));
+			elsif LINE_VALID_IN = '1' then  
 				if i = "10" then
-					GlobalCost3 := (others =>(others => '0'));
+					GlobalCost := GLOBAL_COST_TRE;					
+				else
+					GlobalCost := GLOBAL_COST;
 				end if;
-				for k in 0 to dmax - 1 loop
-					GlobalCost3(k) := GlobalCost3(k) + GlobalCost_disp3(conv_integer(i + 2))(k)(7 downto 2);
-				end loop;
-				GLOBAL_COST3 <= GlobalCost3;
-		end if;
-	end if;
-end process DISP3;
+				d := k * 4;
+				for z in k * 4  to (k + 1) * 4 - 1 loop
+					if(comparator1(GlobalCost(d), GlobalCost(z))) then
+						d := z;
+					end if;
+				end loop;                               
+				dpl0(k) <= d;
+				GC0(k)  <= GlobalCost(d);
+			end if;
+		end if; 
+	end process DPL00;
+end generate PL0;
 
---DISP0 : process(PIPELINE_CLOCK) is	
---	variable GlobalCost5 : GlobalCosts_array;
---begin
---	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
---		if RESET = '1' or FRAME_VALID_IN = '0' then
---			GlobalCost5		:= (others =>(others => '0'));
---		elsif LINE_VALID_IN = '1' then
---			if(i = "10") then
---				GlobalCost5 := GLOBAL_COST3;
---			else
---				GlobalCost5 := GLOBAL_COST;
---			end if;
---
---			d := 0;
---			for k in 0 to  (dmax - 1)/3  loop
---				if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
---					d := k;
---				end if;
---			end loop;
---		end if;
---	end if;
---end process DISP0;
+PL1 : for k in 0 to dmax/16 - 1 generate
+begin
+	DPL01 : process(PIPELINE_CLOCK) is      
+	variable d      : int_64;
+	begin
+		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
+			if RESET = '1' then
+				dpl1(k) <= 0;
+				GC1(k)  <= (others => '0');
+			elsif LINE_VALID_IN = '1' then                                  
+				d := k * 4;
+				for z in k * 4 to (k + 1) * 4 - 1 loop
+					if(comparator1(GC0(d), GC0(z))) then
+						d := z;
+					end if;
+				end loop;                               
+				dpl1(k) <= dpl0(d);
+				GC1(k)  <= GC0(d);                                                      
+			end if;
+		end if;         
+	end process DPL01;
+end generate PL1;
 
- 
 DISP : process(PIPELINE_CLOCK) is	
 	variable d	: int_64;
-	variable GlobalCost5					: GlobalCosts_array;
-	variable GlobalCost_disp			: GlobalCosts_array_disp;
-	variable GlobalCost_disp3			: GlobalCosts_array_disp;
-	variable d_disp						: d_disp_array;
-	variable d_disp3						: d_disp_array;
+	variable dRD 	: int_64;
+	variable dLR	: int_64;
+	variable dUD	: int_64;
 begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or FRAME_VALID_IN = '0' then
-			LINE_VALID_OUT <= '0';
+			LINE_VALID_OUT <= '0';			
+			dd 					<= (others => '0');
+			dRD := 0;
+			dUD := 0;
+			dLR := 0;
 			
-			dd <= (others => '0');			
-			GlobalCost5			:= (others =>(others => '0'));
-			GLOBAL_COST_MIN	<= (others =>(others => '0'));
-			i <= "00";
-						
-			d_disp := (others => 0);
-			d_disp3 := (others => 0);
-						
-			DINDRD_A	<=	(others => '0');
-			DIND_A	<= (others => '0');
-			
-			GC00	<= (others =>(others => '0'));
-			GC01	<= (others =>(others => '0'));
-			GC1	<= (others =>(others => '0'));
-			d0		<= 0;
-			d1		<= 0;
-			
-
+			DIND_A		<=(others => '0');
+			DINDRD_A	<= (others => '0');
 		elsif LINE_VALID_IN = '1'    then
-				LINE_VALID_OUT <= '1';
-				
---				if(i = "10") then
---					GlobalCost5 := GLOBAL_COST3;
---				else
---					GlobalCost5 := GLOBAL_COST;
---				end if;
+
+			d := 0;
+			for z in 0 to dmax / 16 - 1 loop
+				if(comparator1(GC1(d), GC1(z))) then
+					d := z;
+				end if;                         
+			end loop;
 			
-			if(i = "10") then
-					GLOBAL_COST_MIN <= GLOBAL_COST3;
-				else
-					GLOBAL_COST_MIN <= GLOBAL_COST;
+			if  i = "00" then
+				if conf = "000" or conf = "001" or conf = "010" or conf = "011" then
+					DATA_OUT <= conv_std_logic_vector(dpl1(d), 5) & "000";
+					LINE_VALID_OUT <= '1';						
 				end if;
-			
-			
-
---				d := 0;
---				for k in 0 to  (dmax - 1) / 3 loop
---					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
---						d := k;
---					end if;
---				end loop;
---				d0 <= d;
---				
---				for k in 0 to  (dmax - 1) / 3 - 1 loop
---					GC00(k) <=  GlobalCost5(k + (dmax - 1) / 3 + 1);
---					GC01(k) <=  GlobalCost5(k + 2 * (dmax - 1) / 3 + 1);				
---				end loop;
---				
---				GC00((dmax - 1) / 3) <= GlobalCost5(d);
---				
---				d := 0;
---				for k in 0 to (dmax - 1)/3 loop
---					if(comparator1(GC00(d), GC00(k))) then
---						d := k;
---					end if;
---				end loop;
---				
---				GC1 <= GC01;
---				GC1((dmax - 1) / 3) <= GC00(d);
---				
---				if d = (dmax - 1)/3 then
---					d1 <= d0;
---				else
---					d1 <= (dmax - 1) / 3 + 1 + d;
---				end if;
---						
---				
---				d := 0;
---				for k in 0 to  (dmax - 1)/3 loop
---					if(comparator1(GC1(d), GC1(k))) then
---						d := k;
---					end if;
---				end loop;
---
---				if d = (dmax - 1)/3 then
---					d := d1;
---				else
---					d := 2 * (dmax - 1) / 3 + 1 + d;
---				end if;
---
---
---
-
-
-				d := MIN_OUT;
---				d := 0;
---				for k in 0 to  dmax - 1 loop
---					if(comparator1(GlobalCost5(d), GlobalCost5(k))) then
---						d := k;
---					end if;
---				end loop;
-
-
-				
-				d_disp(conv_integer(i - 1)) := d;		-- 00 LR // 01 UD // 10 OUT // 11 RD	--// LR //UD//  OUT// RD
-				
-				DIND_A <= conv_std_logic_vector(d_disp(1), 6);
-				DATA_OUT <= conv_std_logic_vector(d_disp(2), 4) & "0000";
-				DINDRD_A	<=	conv_std_logic_vector(d_disp(3), 6);
-				
-				d_disp3(0) := 0;
-				d_disp3(2) := d_disp(0);
-				
+			elsif  i = "01" then				
+				DINDRD_A	<=	conv_std_logic_vector(dpl1(d), 6);
+				if conf = "101" then
+					DATA_OUT <= conv_std_logic_vector(dpl1(d), 5) & "000";
+					LINE_VALID_OUT <= '1';						
+				end if;
 				if first_line = '1' then
-					d_disp3(3) := 0;
-					d_disp3(1) := 0;
+					dd <= (others => '0');
 				else
-					d_disp3(3) := conv_integer(DOUTD_B);
-					d_disp3(1) := conv_integer(DOUTDRD_B);
+					dd <= DOUTDRD_B;
+				end if;				
+			elsif  i = "10" then
+				if conf = "100" then
+					DATA_OUT <= conv_std_logic_vector(dpl1(d), 5) & "000";
+					LINE_VALID_OUT <= '1';						
 				end if;
-		
-				dd <= conv_std_logic_vector(d_disp3(conv_integer(i)), 6); 	-- //00 0//01 RD//10 LR//11 UD 
-				
-				i<= i + 1;
+				dd <= conv_std_logic_vector(dpl1(d), 6);
+			elsif  i = "11" then								
+				DIND_A <= conv_std_logic_vector(dpl1(d), 6);
+				if conf = "110" then
+					DATA_OUT <= conv_std_logic_vector(dpl1(d), 5) & "000";
+					LINE_VALID_OUT <= '1';						
+				end if;
+				if first_line = '1' then
+					dUD := 0;
+				else
+					dUD := conv_integer(DOUTD_B);
+				end if;
+				dd <= conv_std_logic_vector(dUD, 6);								
+			end if;	--i
 		else
 			LINE_VALID_OUT <= '0';			
 		end if;	--line valid
 	end if;	--reset
 end process DISP;
 
+GCP : process(PIPELINE_CLOCK) is      
+	variable GlobalCostRD: GlobalCosts_array;
+	variable GlobalCostLR : GlobalCosts_array;
+	variable GlobalCostUD : GlobalCosts_array;
+begin
+	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
+		if RESET = '1' then
+			GLOBAL_COST_PREV	<= (others => (others => '0'));
+			GLOBAL_COST_TRE		<= (others => (others => '0'));
+			i 					<= "00";			
+			GlobalCostRD		:= (others => (others => '0'));
+			GlobalCostUD		:= (others => (others => '0'));
+			GlobalCostLR		:= (others => (others => '0'));
+			
+			DINRD_A 	<= (others =>(others => '0'));
+			DINUD_A		<=(others =>(others => '0'));
+		elsif LINE_VALID_IN = '1' then                                  
+			i<= i + 1;
+			if	i = "00" then								
+				GlobalCostLR := GLOBAL_COST;
+				if conf /= "001" then
+					for k in 0 to dmax - 1 loop
+						GLOBAL_COST_TRE(k) <= GLOBAL_COST_TRE(k) + GLOBAL_COST(k)(7 downto 2);
+					end loop;					
+				end if;
+
+			elsif	i = "01" then			
+				
+				DINUD_A <= GLOBAL_COST;
+				if first_line = '1' then
+					GlobalCostUD := (others =>(others => '0'));		
+				else
+					GlobalCostUD := DOUTUD_B;
+				end if;
+				GLOBAL_COST_PREV <= GlobalCostRD;
+				
+				if conf /= "011" then
+					for k in 0 to dmax - 1 loop
+						GLOBAL_COST_TRE(k) <= GLOBAL_COST_TRE(k) + GlobalCostUD(k)(7 downto 2);
+					end loop;					
+				end if;
+			elsif	i = "10" then								
+				GLOBAL_COST_PREV <= GlobalCostLR;
+				
+				
+				for k in 0 to dmax - 1 loop
+					GLOBAL_COST_TRE(k) <= (others => '0');
+				end loop;
+			elsif	i = "11" then				
+				DINRD_A <= GLOBAL_COST;
+				if first_line = '1' then
+					GlobalCostRD := (others =>(others => '0'));	
+				else
+					GlobalCostRD := DOUTRD_B;
+				end if;
+				
+				GLOBAL_COST_PREV <= GlobalCostUD;
+				if conf /= "010" then
+					for k in 0 to dmax - 1 loop
+						GLOBAL_COST_TRE(k) <= GLOBAL_COST_TRE(k) + GlobalCostRD(k)(7 downto 2);
+					end loop;
+				end if;
+			end if;
+		end if;
+	end if;         
+end process GCP;
+
 end Behavioral;
+
+
+
+--DISP : process(PIPELINE_CLOCK) is	
+----	variable dLocal local_d_array;
+--
+--	variable d	: int_64;
+--	variable GlobalCostRD: GlobalCosts_array;
+--	variable dRD 	: int_64;
+--	variable GlobalCostLR : GlobalCosts_array;
+--	variable dLR	: int_64;
+--	variable GlobalCostUD : GlobalCosts_array;
+--	variable dUD	: int_64;
+----	variable GlobalCost3 : GlobalCosts_array;
+----	variable GlobalCost5 : GlobalCosts_array;
+--begin
+--	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
+--		if RESET = '1' or FRAME_VALID_IN = '0' then
+--			LINE_VALID_OUT <= '0';
+--			
+--			GLOBAL_COST_PREV	<= (others => (others => '0'));
+--			GLOBAL_COST_TRE		<= (others => (others => '0'));
+--			dd 					<= (others => '0');
+--			i 					<= "00";
+--			
+--			GlobalCostRD 	:= (others => (others => '0'));
+--			dRD := 0;
+--			GlobalCostUD	:= (others =>(others => '0'));
+--			dUD := 0;
+--			GlobalCostLR	:= (others =>(others => '0'));
+--			dLR := 0;
+----			GlobalCost5		:= (others =>(others => '0'));
+--			
+--			DINRD_A 	<= (others =>(others => '0'));
+--			DINDRD_A	<= (others => '0');
+--			
+--			DIND_A		<=(others => '0');
+--			DINUD_A		<=(others =>(others => '0'));
+--
+--		elsif LINE_VALID_IN = '1'    then
+--
+--			d := 0;
+--			for z in 0 to dmax / 32 -1 loop
+--					if(comparator1(GC1(d), GC1(z))) then
+--							d := z;
+--					end if;                         
+--			end loop;
+--
+--				if  i = "00" then
+--					
+--					DATA_OUT <= conv_std_logic_vector(dpl1(d), 4) & "0000";
+--					LINE_VALID_OUT <= '1';
+--				elsif  i = "01" then				
+--
+--					DINDRD_A	<=	conv_std_logic_vector(dpl1(d), 6);
+--					if first_line = '1' then
+--						dd <= (others => '0');
+--					else
+--						dd <= DOUTDRD_B;
+--					end if;
+--					
+--				elsif  i = "10" then
+--					dd <= conv_std_logic_vector(dpl1(d), 6);
+--				elsif  i = "11" then								
+--					DIND_A <= conv_std_logic_vector(dpl1(d), 6);
+--					if first_line = '1' then
+--						dUD := 0;
+--					else
+--						dUD := conv_integer(DOUTD_B);
+--					end if;
+--					dd <= conv_std_logic_vector(dUD, 6);								
+--				end if;	--i
+--				i<= i + 1;
+--
+--				if	i = "00" then								
+--					GlobalCostLR := GLOBAL_COST;
+--					
+--					for k in 0 to dmax - 1 loop
+--						GLOBAL_COST_TRE(k) <= GLOBAL_COST_TRE(k) + GLOBAL_COST(k)(7 downto 2);
+--					end loop;
+--				elsif	i = "01" then			
+--					
+--					DINUD_A <= GLOBAL_COST;
+--					if first_line = '1' then
+--						GlobalCostUD := (others =>(others => '0'));		
+--					else
+--						GlobalCostUD := DOUTUD_B;
+--					end if;
+--					GLOBAL_COST_PREV <= GlobalCostRD;
+--					
+--					for k in 0 to dmax - 1 loop
+--						GLOBAL_COST_TRE(k) <= GLOBAL_COST_TRE(k) + GlobalCostUD(k)(7 downto 2);
+--					end loop;					
+--				elsif	i = "10" then								
+--					GLOBAL_COST_PREV <= GlobalCostLR;
+--					
+--					for k in 0 to dmax - 1 loop
+--						GLOBAL_COST_TRE(k) <= (others => '0');
+--					end loop;
+--				elsif	i = "11" then				
+--					
+--					DINRD_A <= GLOBAL_COST;
+--					if first_line = '1' then
+--						GlobalCostRD := (others =>(others => '0'));	
+--					else
+--						GlobalCostRD := DOUTRD_B;
+--					end if;
+--					
+--					GLOBAL_COST_PREV <= GlobalCostUD;
+--					for k in 0 to dmax - 1 loop
+--						GLOBAL_COST_TRE(k) <= GLOBAL_COST_TRE(k) + GlobalCostRD(k)(7 downto 2);
+--					end loop;
+--				end if;
+--				
+--		else
+--			LINE_VALID_OUT <= '0';			
+--		end if;	--line valid
+--	end if;	--reset
+--end process DISP;
