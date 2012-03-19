@@ -5,23 +5,23 @@ use IEEE.std_logic_unsigned.all;
 
 package const is
 
--- LR UD RD "000"
--- UD RD "001"
+-- LR UD RD(RL) "000"
+-- UD RD(RL) "001"
 -- UD LR "010"
--- RD LR "011"
+-- RD(RL) LR "011"
 -- LR "100"
--- RD "101"
+-- RD(RL) "101" 
 -- UD "110"
 constant conf : std_logic_vector := "000"; 
 
+--
+--constant dmax	  	: integer := 16;
+--constant Width 		: integer := 384;
+--constant Hight		: integer := 288;
 
-constant dmax	  	: integer := 16;
-constant Width 		: integer := 384;
-constant Hight		: integer := 288;
-
---constant dmax		: integer := 64;
---constant Width		: integer := 640;
---constant Hight		: integer := 480;
+constant dmax		: integer := 64;
+constant Width		: integer := 640;
+constant Hight		: integer := 480;
 
 constant P1			: integer := 10; 
 constant P2			: integer := 40;  
