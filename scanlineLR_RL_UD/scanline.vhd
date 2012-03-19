@@ -330,9 +330,9 @@ begin
 					else
 						LocalCost := (LINE_RIGHT(k) - LEFT_RL);
 					end if;
-					if LocalCost = "XXXXXXXX" then
-						LocalCost := (others => '0');
-					end if;
+--					if LocalCost = "XXXXXXXX" then
+--						LocalCost := (others => '0');
+--					end if;
 					LOCAL_COST(k) <= LocalCost;
 			end if;
 		end if;	
