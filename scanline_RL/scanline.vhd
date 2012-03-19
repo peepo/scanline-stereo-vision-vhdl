@@ -178,7 +178,6 @@ begin
 			addrR_b <= (others => '0');
 		else
 			if(i = "00") then
-				i <= i + 1; 
 			elsif(i = "01") then
 				if b = '0' then
 					addrL_a <= conv_std_logic_vector(j  , ADDR_WIDTH);
@@ -215,61 +214,11 @@ begin
 					LEFT_RL <= (others => '0');
 					LINE_RIGHT <= (others => (others => '0'));
 				end if;
-				i <= i + 1;
 			elsif(i = "10") then
-				i <= i + 1;
 			elsif(i = "11") then
-				i <= i + 1;
 			end if;
---			
---			if(i = "00") then
---			elsif(i = "01") then
---
---				if b = '0' then
---					addrL_a <= conv_std_logic_vector(j  , ADDR_WIDTH);
---					addrR_a <= conv_std_logic_vector(j , ADDR_WIDTH);
---					if j  + dmax < Width  then
---						addrR_b <= conv_std_logic_vector(j  + dmax, ADDR_WIDTH);
---					else
---						addrR_b <= conv_std_logic_vector(Width - 1, ADDR_WIDTH);
---					end if;
---					if j  < Width - dmax  and first_line = "10" then
---						LineRight0 <= doutR & LineRight0(dmax - 1 downto 1);
---					else
---						LineRight0 <= "00000000" & LineRight0(dmax - 1 downto 1);
---					end if;
---					LineRight1 <= LineRight1(dmax - 2 downto 0) & RIGHT;
---					LINE_RIGHT <= LineRight0;
---				else
---					addrL_a <= conv_std_logic_vector(Width - j - 1, ADDR_WIDTH);
---					addrR_a <= conv_std_logic_vector(Width - j - 1, ADDR_WIDTH);	
---					addrR_b <= conv_std_logic_vector(Width - j - 1 - dmax, ADDR_WIDTH);
---					
---					if  Width - j - 1 - dmax > 0 and first_line = "10" then
---						LineRight1 <= doutR & LineRight1(dmax - 1 downto 1);
---						addrR_b <= conv_std_logic_vector(Width - j - 1 - dmax, ADDR_WIDTH);						
---					else
---						addrR_b <= conv_std_logic_vector(0, ADDR_WIDTH);
---						LineRight1 <= "00000000" & LineRight1(dmax - 1 downto 1);
---					end if;				
---					LineRight0 <= LineRight0( dmax - 2 downto 0) & RIGHT  ;
---					LINE_RIGHT <= LineRight1;
---				end if;
---				
---				LeftRL :=  doutL;
---				dinL <= LEFT;
---				dinR <= RIGHT;
---				LEFT_RL <= LeftRL;
---				if first_line /= "10" then
---					dinL <= (others => '0');
---					dinR <= (others => '0');
---					LEFT_RL <= (others => '0');
---				end if;
---
---			elsif(i = "10") then
---			elsif(i = "11") then
---			end if;
---			i <= i + 1;
+				i <= i + 1;
+
 		end if;
 	end if;
 end process f;
@@ -289,11 +238,6 @@ begin
 				else
 					LocalCost := (LINE_RIGHT(k) - LEFT_RL);
 				end if;
-
---					if LocalCost = "XXXXXXXX" then
---						LocalCost := (others => '0');
---						report "rerere";
---					end if;
 					LOCAL_COST(k) <= LocalCost;
 			end if;
 		end if;	
