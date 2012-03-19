@@ -75,15 +75,17 @@ architecture Behavioral of scanline is
 	signal dinLR	: GlobalCosts_array;
 	signal doutLR	: GlobalCosts_array;
 	
-	function comparator(A: std_logic_vector(DATA_WIDTH - 1 downto 0); B: std_logic_vector(DATA_WIDTH - 1 downto 0)) return boolean is
+	
+	function comparator(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-		return A(DATA_WIDTH - 1 downto 5) > B(DATA_WIDTH - 1 downto 5);
+			return A(7 downto 5) > B(7 downto 5);
 	end comparator;
 	
-	function comparator1(A: std_logic_vector(DATA_WIDTH - 1 downto 0); B: std_logic_vector(DATA_WIDTH - 1 downto 0)) return boolean is
+	function comparator1(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-		return A(DATA_WIDTH - 1 downto 2) > B(DATA_WIDTH - 1 downto 2);
+			return A(7 downto 2) > B(7 downto 2);
 	end comparator1;
+
 
 	signal LOCAL_COST 		: GlobalCosts_array;
 	signal GLOBAL_COST 		: GlobalCosts_array;
@@ -94,6 +96,7 @@ architecture Behavioral of scanline is
 	signal i				: std_logic_vector(1 downto 0);
 	signal b				: std_logic;
 	signal j				: int_640;
+	signal z				: int_640;
 	signal LineRight0		: Line_array;
 	signal LineRight1		: Line_array;
 	signal RL_Line			: RL_Line_array;
@@ -178,14 +181,45 @@ begin
 			FRAME_VALID_OUT <= '0';
 			LINE_VALID_OUT <= '0';
 			j <= 0;
+			z <= 0;
 			b <= '0';
 			FIRST_LINE <= "00";
+			
+			ADDRUD_B <= (others =>(others => '0'));
+			ADDRUD_A <= (others =>(others => '0'));
+			ADDRD_A	<=(others => '0');
+			ADDRD_B <=(others => '0');
+			
+			addrD <= (others => '0');
+			ADDRLR <= (others =>(others => '0'));
+
 		else
 			if FRAME_VALID_IN = '1' then
 				FRAME_VALID_OUT <= '1';
 				if LINE_VALID_IN = '1' then
 					LINE_VALID_OUT <= '1';					
 					j <= j + 1;
+					
+					if b = '0' then
+						z <= j;
+					else
+						z <= Width - j - 1;
+					end if;
+
+					addrD <= conv_std_logic_vector(z, ADDR_WIDTH);
+					
+					ADDRLR <= (others => conv_std_logic_vector(z, ADDR_WIDTH));
+					
+					ADDRUD_B <= (others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
+					ADDRUD_A <= (others => conv_std_logic_vector(j - 1,ADDR_WIDTH));
+					ADDRD_A	<=conv_std_logic_vector(j - 1, ADDR_WIDTH);
+					ADDRD_B <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
+					
+					if first_line = "00" then
+						ADDRUD_A <=(others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
+						ADDRD_A <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
+					end if;					
+
 				else
 					if j = Width then
 						b <= not b;
@@ -373,7 +407,6 @@ end process EXDmax;
 
 DISP : process(PIPELINE_CLOCK) is	
 	variable d				: int_64;
-	variable z				: int_640;
 	variable dRL			: int_64;
 	variable dLR			: int_64;
 	variable dUD			: int_64;
@@ -392,22 +425,19 @@ begin
 			DATA_OUT	<= (others => '0');
 			
 			GlobalCostRL := (others => (others => '0'));
-			dRL := 0;
-			GlobalCostLR := (others => (others => '0'));
-			dLR := 0;
 			GlobalCostUD := (others =>(others => '0'));
-			dUD := 0;
+			GlobalCostLR := (others => (others => '0'));
 			GlobalCost3	:= (others =>(others => '0'));
 			GlobalCost8 := (others =>(others => '0'));
 			
-			ADDRUD_B <= (others =>(others => '0'));
-			ADDRUD_A <= (others =>(others => '0'));
-			ADDRD_A	<=(others => '0');
-			ADDRD_B <=(others => '0');
+
+			dUD := 0;
+			dRL := 0;
+			dLR := 0;
+
 			DINUD_A	<=(others =>(others => '0'));
 			DIND_A	<= conv_std_logic_vector(0, 6);
 			
-			addrD <= (others => '0');
 			dinD <= (others => '0');
 
 		elsif LINE_VALID_IN = '1'   then
@@ -423,31 +453,19 @@ begin
 						d := k;
 					end if;
 			end loop;
-						
-			if b = '0' then
-				z := j;
-			else
-				z := Width - j - 1;
-			end if;
 
 			if  i = "00" then								
-				DINUD_A			<= GLOBAL_COST;
-				GlobalCostUD	:= DOUTUD_B;		
+				DINUD_A		<= GLOBAL_COST;
 				
-				ADDRUD_B <= (others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
-				ADDRUD_A <= (others => conv_std_logic_vector(j - 1,ADDR_WIDTH));
-						
-				for k in 0 to dmax - 1 loop
-					if  DOUTUD_B(k) = "XXXXXXXX" then
-						GlobalCostUD(k) := (others => '0') ;
-					end if;
-				end loop;	
- 				
-				ADDRD_A	<=conv_std_logic_vector(j - 1, ADDR_WIDTH);
+				if first_line = "00" then
+					GlobalCostUD := (others =>(others => '0'));             
+				else
+					GlobalCostUD := DOUTUD_B;
+				end if;
+				 								
 				DIND_A	<= conv_std_logic_vector(d, 6);
-				ADDRD_B <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
-				
-				if doutD_b = "XXXXXXXX" then
+
+				if first_line = "00" then				
 					dUD := 0;
 				else
 					dUD := conv_integer(doutD_b);
@@ -466,7 +484,6 @@ begin
 				
 			elsif  i = "10" then
 
-				ADDRLR <= (others => conv_std_logic_vector(z, ADDR_WIDTH));
 				DINLR <= GlobalCost3;
 				
 				GLOBAL_COST_PREV <= GlobalCostUD;
@@ -478,15 +495,20 @@ begin
 				GlobalCost3 := DOUTLR;				
 				GlobalCost8 := GlobalCostRL;
 				
-				DATA_OUT <= doutD(4 downto 0) & "000";
-				
 			elsif  i = "11" then
 				GLOBAL_COST_PREV <= GlobalCostLR;
 				dd <= conv_std_logic_vector(dLR, 6);
 				
-				addrD <= conv_std_logic_vector(z, ADDR_WIDTH);
 				dinD <= conv_std_logic_vector(d,6);				
 				
+				if first_line = "00" then
+						DIND		<= (others => '0');
+						DATA_OUT	<= (others => '0');
+				else
+						DATA_OUT	<= DOUTD(4 downto 0) & "000";
+						DIND	<= conv_std_logic_vector(d, 6);
+				end if;
+	
 				GlobalCost3 := (others =>(others => '0'));
 				GlobalCost8 := (others =>(others => '0'));				
 			end if;	--i
@@ -494,7 +516,6 @@ begin
 			for k in 0 to dmax - 1 loop
 				GlobalCost3(k) := GlobalCost3(k) + GlobalCost8(k)(7 downto 2);
 			end loop;
-			
 			
 		end if;	--line valid
 	end if;	--reset
