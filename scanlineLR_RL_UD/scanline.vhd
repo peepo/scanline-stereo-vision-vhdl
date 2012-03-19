@@ -467,7 +467,7 @@ GCP : process(PIPELINE_CLOCK) is
 	variable GlobalCostLR	: GlobalCosts_array;
 	variable GlobalCostUD 	: GlobalCosts_array;
 	variable GlobalCost3	: GlobalCosts_array;
-	variable GlobalCost8	: GlobalCosts_array;
+--	variable GlobalCost8	: GlobalCosts_array;
 begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or  FRAME_VALID_IN = '0'  then
@@ -477,7 +477,7 @@ begin
 			GlobalCostUD :=	(others =>(others => '0'));
 			GlobalCostLR :=	(others =>(others => '0'));
 			GlobalCost3	:=	(others =>(others => '0'));
-			GlobalCost8 :=	(others =>(others => '0'));
+--			GlobalCost8 :=	(others =>(others => '0'));
 		elsif LINE_VALID_IN = '1'   then
 			if  i = "00" then								
 				D_GC_UD_IN				<= GLOBAL_COST;
@@ -488,45 +488,39 @@ begin
 					GlobalCostUD := D_GC_UD_OUT;
 				end if;
 				if conf /= "011" then
-					GlobalCost8 := GlobalCostUD;
-				else
-					GlobalCost8 := (others =>(others => '0'));				
+					for k in 0 to dmax - 1 loop
+						GlobalCost3(k) := GlobalCost3(k) + GlobalCostUD(k)(7 downto 2);
+					end loop;
 				end if;				
+
 			elsif  i = "01" then								
 				GlobalCostLR := GLOBAL_COST;
-				GlobalCost8 := GlobalCostLR;
+--				GlobalCost8 := GlobalCostLR;
 				if conf /= "001" then
-					GlobalCost8 := GlobalCostLR;
-				else
-					GlobalCost8 := (others =>(others => '0'));				
+					for k in 0 to dmax - 1 loop
+						GlobalCost3(k) := GlobalCost3(k) + GlobalCostLR(k)(7 downto 2);
+					end loop;	
 				end if;
 			elsif  i = "10" then								
 				GlobalCostRL := GLOBAL_COST;
 				GLOBAL_COST_PREV <= GlobalCostUD;
 				D_GC_3_IN <= GlobalCost3;
-				if first_line /= "00" then
-					GlobalCost3 := D_GC_3_OUT;				
-				else
-					GlobalCost3 := (others =>(others => '0'));             
+
+				if conf = "101" then
+					GlobalCost3 := GlobalCostRL;
+				elsif conf /= "010" and first_line /= "00"  then
+					for k in 0 to dmax - 1 loop
+						GlobalCost3(k) := D_GC_3_OUT(k) + GlobalCostRL(k)(7 downto 2);
+					end loop;				
 				end if;
-				
-				if conf /= "010" then
-					GlobalCost8 := GlobalCostRL;
-				else
-					GlobalCost8 := (others =>(others => '0'));				
-				end if;				
 			elsif  i = "11" then								
 				GLOBAL_COST_PREV <= GlobalCostLR;
 				GlobalCost3 := (others =>(others => '0'));
-				GlobalCost8 := (others =>(others => '0'));				
+--				GlobalCost8 := (others =>(others => '0'));				
 			end if;
-			for k in 0 to dmax - 1 loop
-				GlobalCost3(k) := GlobalCost3(k) + GlobalCost8(k)(7 downto 2);
-			end loop;
+
 			GLOBAL_COST_TRE <= GlobalCost3;
-			if conf = "101" then
-				GLOBAL_COST_TRE <= GlobalCostRL;
-			end if;
+			
 		end if;
 	end if;
 end process GCP;
