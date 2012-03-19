@@ -15,13 +15,13 @@ package const is
 constant conf : std_logic_vector := "000"; 
 
 
---constant dmax	  	: integer := 16;
---constant Width 		: integer := 384;
---constant Hight		: integer := 288;
+constant dmax	  	: integer := 16;
+constant Width 		: integer := 384;
+constant Hight		: integer := 288;
 
-constant dmax		: integer := 64;
-constant Width		: integer := 640;
-constant Hight		: integer := 480;
+--constant dmax		: integer := 64;
+--constant Width		: integer := 640;
+--constant Hight		: integer := 480;
 
 constant P1			: integer := 10; 
 constant P2			: integer := 40;  
