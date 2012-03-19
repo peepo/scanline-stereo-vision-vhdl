@@ -46,45 +46,46 @@ architecture Behavioral of scanline is
 		DOUT_B	: out std_logic_vector	(N - 1 downto 0 )
 	);
 	end component;
+
+
+	signal ADDR_CG_UD_IN	: Address_Width_array;
+	signal ADDR_CG_UD_OUT	: Address_Width_array;
+	signal D_GC_UD_IN	: GlobalCosts_array;
+	signal D_GC_UD_OUT	: GlobalCosts_array;
+
+	signal ADDR_GC_3_IN_OUT	: Address_Width_array;
+	signal D_GC_3_IN	: GlobalCosts_array;
+	signal D_GC_3_OUT	: GlobalCosts_array;
+
+	signal ADDR_DISP_UD_IN	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
+	signal ADDR_DISP_UD_OUT	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
+	signal D_DISP_UD_IN	: std_logic_vector	(DATA_WIDTH - 1 downto 0 );
+	signal D_DISP_UD_OUT	: std_logic_vector	(DATA_WIDTH - 1 downto 0 );
+
+	signal ADDR_PIXEL_LEFT_RL_IN	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+	signal ADDR_PIXEL_LEFT_RL_OUT	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+	signal D_PIXEL_LEFT_RL_IN		:  std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal D_PIXEL_LEFT_RL_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
 	
-	signal ADDRUD_A	: Address_Width_array;
-	signal ADDRUD_B	: Address_Width_array;
-	signal DINUD_A	: GlobalCosts_array;
-	signal DOUTUD_B	: GlobalCosts_array;
+	signal ADDR_PIXEL_RIGHT_RL_IN	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+	signal ADDR_PIXEL_RIGHT_RL_OUT	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+	signal D_PIXEL_RIGHT_RL_IN		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal D_PIXEL_RIGHT_RL_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
 
-	signal ADDRLR	: Address_Width_array;
-	signal DINLR	: GlobalCosts_array;
-	signal DOUTLR	: GlobalCosts_array;
-
-	signal ADDRD_A	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
-	signal ADDRD_B	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
-	signal DIND_A	: std_logic_vector	(DATA_WIDTH - 1 downto 0 );
-	signal DOUTD_B	: std_logic_vector	(DATA_WIDTH - 1 downto 0 );
-
-	signal ADDRL_A	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal ADDRL_B	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal DINL		:  std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	signal DOUTL	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	
-	signal ADDRR_A	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal ADDRR_B	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal DINR		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	signal DOUTR	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
-
-	signal ADDRD	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal DIND		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	signal DOUTD	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal ADDR_DISP_3	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+	signal D_DISP_3_IN		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal D_DISP_3_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
 	
 	
 	
 	function comparator(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-			return A(7 downto 0) > B(7 downto 0);
+			return A(7 downto 5) > B(7 downto 5);
 	end comparator;
 	
 	function comparator1(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-			return A(7 downto 0) > B(7 downto 0);
+			return A(7 downto 2) > B(7 downto 2);
 	end comparator1;
 
 
@@ -120,10 +121,10 @@ begin
 		port map(
 			CLK		=> PIXEL_CLOCK,
 			WE		=> '1',
-			ADDR_A	=> ADDRUD_A(k),
-			ADDR_B	=> ADDRUD_B(k),
-			DIN_A	=> DINUD_A(k),
-			DOUT_B	=> DOUTUD_B(k)
+			ADDR_A	=> ADDR_CG_UD_IN(k),
+			ADDR_B	=> ADDR_CG_UD_OUT(k),
+			DIN_A	=> D_GC_UD_IN(k),
+			DOUT_B	=> D_GC_UD_OUT(k)
 		);
 	
 	BramLineGlobalCostSum : BRAM_RF
@@ -131,9 +132,9 @@ begin
 		port map(
 			CLK		=> PIXEL_CLOCK,
 			WE		=> '1',
-			ADDR_A	=> ADDRLR(k),
-			DIN		=> DINLR(k),
-			DOUT	=> DOUTLR(k)
+			ADDR_A	=> ADDR_GC_3_IN_OUT(k),
+			DIN		=> D_GC_3_IN(k),
+			DOUT	=> D_GC_3_OUT(k)
 		);
 end generate BRAM_loop;
 
@@ -142,10 +143,10 @@ BramLineDispUD : BRAM_WF
 	port map(
 		clk => PIXEL_CLOCK,
 		we =>'1',
-		addr_a => addrD_a,
-		addr_b => addrD_b,
-		din_a=> dinD_a,
-		dout_b=> doutD_b 
+		addr_a => ADDR_DISP_UD_IN,
+		addr_b => ADDR_DISP_UD_OUT,
+		din_a=> D_DISP_UD_IN,
+		dout_b=> D_DISP_UD_OUT 
 	);
 
 
@@ -154,9 +155,9 @@ BramLineLeft : BRAM_RF
 	port map(
 		clk => PIXEL_CLOCK,
 		we =>'1',
-		addr_a => addrL_a,
-		din=> dinL ,
-		dout=> doutL 
+		addr_a => ADDR_PIXEL_LEFT_RL_IN,
+		din=> D_PIXEL_LEFT_RL_IN ,
+		dout=> D_PIXEL_LEFT_RL_OUT 
 	);
 
 BramLineRight : BRAM_WF
@@ -164,10 +165,10 @@ BramLineRight : BRAM_WF
 	port map(
 		clk => PIXEL_CLOCK,
 		we => '1',
-		addr_a => addrR_a,
-		addr_b => addrR_b,
-		din_a => dinR ,
-		dout_b => doutR 
+		addr_a => ADDR_PIXEL_RIGHT_RL_IN,
+		addr_b => ADDR_PIXEL_RIGHT_RL_OUT,
+		din_a => D_PIXEL_RIGHT_RL_IN ,
+		dout_b => D_PIXEL_RIGHT_RL_OUT 
 	);
 		
 BramLineDisp : BRAM_RF
@@ -175,9 +176,9 @@ BramLineDisp : BRAM_RF
 	port map(
 		clk => PIXEL_CLOCK,
 		we =>'1',
-		addr_a => addrD,
-		din=> dinD,
-		dout=> doutD 
+		addr_a => ADDR_DISP_3,
+		din=> D_DISP_3_IN,
+		dout=> D_DISP_3_OUT 
 	);
 
 
@@ -193,13 +194,13 @@ begin
 			b <= '0';
 			FIRST_LINE <= "00";
 			
-			ADDRUD_B <= (others =>(others => '0'));
-			ADDRUD_A <= (others =>(others => '0'));
-			ADDRD_A	<=(others => '0');
-			ADDRD_B <=(others => '0');
+			ADDR_CG_UD_OUT <= (others =>(others => '0'));
+			ADDR_CG_UD_IN <= (others =>(others => '0'));
+			ADDR_DISP_UD_IN	<=(others => '0');
+			ADDR_DISP_UD_OUT <=(others => '0');
 			
-			addrD <= (others => '0');
-			ADDRLR <= (others =>(others => '0'));
+			ADDR_DISP_3 <= (others => '0');
+			ADDR_GC_3_IN_OUT <= (others =>(others => '0'));
 
 		else
 				FRAME_VALID_OUT <= '1';
@@ -213,18 +214,18 @@ begin
 						z <= Width - j - 1;
 					end if;
 
-					addrD <= conv_std_logic_vector(z, ADDR_WIDTH);
+					ADDR_DISP_3 <= conv_std_logic_vector(z, ADDR_WIDTH);
 					
-					ADDRLR <= (others => conv_std_logic_vector(z, ADDR_WIDTH));
+					ADDR_GC_3_IN_OUT <= (others => conv_std_logic_vector(z, ADDR_WIDTH));
 					
-					ADDRUD_B <= (others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
-					ADDRUD_A <= (others => conv_std_logic_vector(j - 1,ADDR_WIDTH));
-					ADDRD_A	<=conv_std_logic_vector(j - 1, ADDR_WIDTH);
-					ADDRD_B <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
+					ADDR_CG_UD_OUT <= (others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
+					ADDR_CG_UD_IN <= (others => conv_std_logic_vector(j - 1,ADDR_WIDTH));
+					ADDR_DISP_UD_IN	<=conv_std_logic_vector(j - 1, ADDR_WIDTH);
+					ADDR_DISP_UD_OUT <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
 					
 					if first_line = "00" then
-						ADDRUD_A <=(others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
-						ADDRD_A <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
+						ADDR_CG_UD_IN <=(others => conv_std_logic_vector(j + 1,ADDR_WIDTH));
+						ADDR_DISP_UD_IN <=conv_std_logic_vector(j + 1, ADDR_WIDTH);
 					end if;					
 
 				else
@@ -256,14 +257,14 @@ begin
 			LineRight1	<= (others =>(others => '0'));
 			LINE_RIGHT	<= (others =>(others => '0'));
 			LEFT_RL		<= (others => '0');
-			DINL <= (others => '0');
-			DINR <= (others => '0');
+			D_PIXEL_LEFT_RL_IN <= (others => '0');
+			D_PIXEL_RIGHT_RL_IN <= (others => '0');
 			i <= "00";
-			addrL_a <= (others => '0');
-			addrR_a <= (others => '0');
-			addrR_b <= (others => '0');
-			dinL <= (others => '0');
-			dinR <= (others => '0');
+			ADDR_PIXEL_LEFT_RL_IN <= (others => '0');
+			ADDR_PIXEL_RIGHT_RL_IN <= (others => '0');
+			ADDR_PIXEL_RIGHT_RL_OUT <= (others => '0');
+			D_PIXEL_LEFT_RL_IN <= (others => '0');
+			D_PIXEL_RIGHT_RL_IN <= (others => '0');
 			LineRightLR := (others =>(others => '0'));
 			LeftRL := (others => '0');
 		elsif LINE_VALID_IN = '1' then
@@ -273,34 +274,34 @@ begin
 				LEFT_RL <= LEFT;
 			elsif(i = "11") then
 				if b = '0' then
-						addrL_a <= conv_std_logic_vector(j  , ADDR_WIDTH);
-						addrR_a <= conv_std_logic_vector(j , ADDR_WIDTH);
-						addrR_b <= conv_std_logic_vector(j  + dmax, ADDR_WIDTH);
+						ADDR_PIXEL_LEFT_RL_IN <= conv_std_logic_vector(j  , ADDR_WIDTH);
+						ADDR_PIXEL_RIGHT_RL_IN <= conv_std_logic_vector(j , ADDR_WIDTH);
+						ADDR_PIXEL_RIGHT_RL_OUT <= conv_std_logic_vector(j  + dmax, ADDR_WIDTH);
 						if j  < Width - dmax then
-								LineRight0 <= doutR & LineRight0(dmax - 1 downto 1);
+								LineRight0 <= D_PIXEL_RIGHT_RL_OUT & LineRight0(dmax - 1 downto 1);
 						else
-								addrR_b <= conv_std_logic_vector(Width - 1, ADDR_WIDTH);
+								ADDR_PIXEL_RIGHT_RL_OUT <= conv_std_logic_vector(Width - 1, ADDR_WIDTH);
 								LineRight0 <= "00000000" & LineRight0(dmax - 1 downto 1);
 						end if;
 						LineRight1 <= LineRight1(dmax - 2 downto 0) & RIGHT;
 						LINE_RIGHT <= LineRight0;
 				else
-						addrL_a <= conv_std_logic_vector(Width - j - 1, ADDR_WIDTH);
-						addrR_a <= conv_std_logic_vector(Width - j - 1, ADDR_WIDTH);
-						addrR_b <= conv_std_logic_vector(Width - j - 1 - dmax, ADDR_WIDTH);
+						ADDR_PIXEL_LEFT_RL_IN <= conv_std_logic_vector(Width - j - 1, ADDR_WIDTH);
+						ADDR_PIXEL_RIGHT_RL_IN <= conv_std_logic_vector(Width - j - 1, ADDR_WIDTH);
+						ADDR_PIXEL_RIGHT_RL_OUT <= conv_std_logic_vector(Width - j - 1 - dmax, ADDR_WIDTH);
 						if  j < Width - 1 - dmax then
-								LineRight1 <= doutR & LineRight1(dmax - 1 downto 1);
+								LineRight1 <= D_PIXEL_RIGHT_RL_OUT & LineRight1(dmax - 1 downto 1);
 						else
-								addrR_b <= conv_std_logic_vector(0, ADDR_WIDTH);
+								ADDR_PIXEL_RIGHT_RL_OUT <= conv_std_logic_vector(0, ADDR_WIDTH);
 								LineRight1 <= "00000000" & LineRight1(dmax - 1 downto 1);
 						end if;                         
 						LineRight0 <= LineRight0( dmax - 2 downto 0) & RIGHT  ;
 						LINE_RIGHT <= LineRight1;
 				end if;
 				
-				LeftRL :=  doutL;
-				dinL <= LEFT;
-				dinR <= RIGHT;
+				LeftRL :=  D_PIXEL_LEFT_RL_OUT;
+				D_PIXEL_LEFT_RL_IN <= LEFT;
+				D_PIXEL_RIGHT_RL_IN <= RIGHT;
 				LEFT_RL <= LeftRL;
 				
 				if first_line /= "11" then
@@ -410,32 +411,32 @@ end process EXDmax;
 
 PL0 : for k in 0 to dmax/4 - 1 generate
 begin
-        DPL00 : process(PIPELINE_CLOCK) is      
-        variable d                              : int_64;
-        variable GlobalCost     : GlobalCosts_array;
-        begin
-                if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
-                        if RESET = '1' or  FRAME_VALID_IN = '0'  then
-                                dpl0(k) <= 0;
-                                GC0(k)  <= (others => '0');
-                                GlobalCost := (others => (others => '0'));
-                        elsif LINE_VALID_IN = '1' then  
-                                if i = "11" then
-                                        GlobalCost := GLOBAL_COST_TRE;                                  
-                                else
-                                        GlobalCost := GLOBAL_COST;
-                                end if;
-                                d := k * 4;
-                                for z in k * 4  to (k + 1) * 4 - 1 loop
-                                        if(comparator1(GlobalCost(d), GlobalCost(z))) then
-                                                d := z;
-                                        end if;
-                                end loop;                               
-                                dpl0(k) <= d;
-                                GC0(k)  <= GlobalCost(d);
-                        end if;
-                end if; 
-        end process DPL00;
+	DPL00 : process(PIPELINE_CLOCK) is      
+	variable d                              : int_64;
+	variable GlobalCost     : GlobalCosts_array;
+	begin
+		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
+			if RESET = '1' or  FRAME_VALID_IN = '0'  then
+				dpl0(k) <= 0;
+				GC0(k)  <= (others => '0');
+				GlobalCost := (others => (others => '0'));
+			elsif LINE_VALID_IN = '1' then  
+				if i = "11" then
+					GlobalCost := GLOBAL_COST_TRE;                                  
+				else
+					GlobalCost := GLOBAL_COST;
+				end if;
+				d := k * 4;
+				for z in k * 4  to (k + 1) * 4 - 1 loop
+					if(comparator1(GlobalCost(d), GlobalCost(z))) then
+						d := z;
+					end if;
+				end loop;                               
+				dpl0(k) <= d;
+				GC0(k)  <= GlobalCost(d);
+			end if;
+		end if; 
+	end process DPL00;
 end generate PL0;
 
 PL1 : for k in 0 to dmax/16 - 1 generate
@@ -471,7 +472,7 @@ begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or  FRAME_VALID_IN = '0'  then
 			GLOBAL_COST_PREV <= (others => (others => '0'));
-			DINLR <= (others => (others => '0'));
+			D_GC_3_IN <= (others => (others => '0'));
 			GlobalCostRL :=	(others =>(others => '0'));
 			GlobalCostUD :=	(others =>(others => '0'));
 			GlobalCostLR :=	(others =>(others => '0'));
@@ -479,12 +480,12 @@ begin
 			GlobalCost8 :=	(others =>(others => '0'));
 		elsif LINE_VALID_IN = '1'   then
 			if  i = "00" then								
-				DINUD_A				<= GLOBAL_COST;
+				D_GC_UD_IN				<= GLOBAL_COST;
 				GLOBAL_COST_PREV	<= GlobalCostRL;
 				if first_line = "00" then
 					GlobalCostUD := (others =>(others => '0'));             
 				else
-					GlobalCostUD := DOUTUD_B;
+					GlobalCostUD := D_GC_UD_OUT;
 				end if;
 				if conf /= "011" then
 					GlobalCost8 := GlobalCostUD;
@@ -502,9 +503,9 @@ begin
 			elsif  i = "10" then								
 				GlobalCostRL := GLOBAL_COST;
 				GLOBAL_COST_PREV <= GlobalCostUD;
-				DINLR <= GlobalCost3;
+				D_GC_3_IN <= GlobalCost3;
 				if first_line /= "00" then
-					GlobalCost3 := DOUTLR;				
+					GlobalCost3 := D_GC_3_OUT;				
 				else
 					GlobalCost3 := (others =>(others => '0'));             
 				end if;
@@ -544,8 +545,8 @@ begin
 			dUD := 0;
 			dRL := 0;
 			dLR := 0;
-			DIND_A	<= conv_std_logic_vector(0, DATA_WIDTH);
-			dinD <= (others => '0');
+			D_DISP_UD_IN	<= conv_std_logic_vector(0, DATA_WIDTH);
+			D_DISP_3_IN <= (others => '0');
 		elsif LINE_VALID_IN = '1'   then
 			d := 0;
 			for z in 0 to dmax / 16 - 1 loop
@@ -558,20 +559,20 @@ begin
 				dd <= conv_std_logic_vector(dRL, DATA_WIDTH);
 			elsif  i = "01" then
 				if first_line = "00" then
-						DIND		<= (others => '0');
+						D_DISP_3_IN		<= (others => '0');
 						DATA_OUT	<= (others => '0');
 				else
-						DIND	<= conv_std_logic_vector(dpl1(d), DATA_WIDTH);
+						D_DISP_3_IN	<= conv_std_logic_vector(dpl1(d), DATA_WIDTH);
 				end if;
 				if (conf = "000" or conf = "101" or conf = "001" or conf = "011" or conf = "010" ) and first_line /= "00" then
-					DATA_OUT <= DOUTD(4 downto 0) & "000";
+					DATA_OUT <= D_DISP_3_OUT(4 downto 0) & "000";
 				end if;
 			elsif  i = "10" then
-				DIND_A	<= conv_std_logic_vector(dpl1(d), DATA_WIDTH);
+				D_DISP_UD_IN	<= conv_std_logic_vector(dpl1(d), DATA_WIDTH);
 				if first_line = "00" then				
 					dUD := 0;
 				else
-					dUD := conv_integer(doutD_b);
+					dUD := conv_integer(D_DISP_UD_OUT);
 				end if;
 				
 				if conf = "110" and first_line /= "00" then
