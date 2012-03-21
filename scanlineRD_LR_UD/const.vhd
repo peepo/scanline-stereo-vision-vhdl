@@ -14,7 +14,7 @@ package const is
 -- UD "110"
 constant conf : std_logic_vector := "000"; 
 
---
+
 --constant dmax	  	: integer := 16;
 --constant Width 		: integer := 384;
 --constant Hight		: integer := 288;
@@ -37,6 +37,7 @@ subtype int_64 is integer range 0 to dmax - 1;
 subtype int_640 is integer range 0 to Width - 1;
 
 type    GlobalCosts_array is array(dmax - 1 downto 0) of LP_element;
+type    GlobalCosts_4_array is array(3 downto 0) of LP_element;
 type    Line_array is array(dmax - 1 downto 0) of pixel;
 type	RL_Line_array is array(1 downto 0, Width - 1 downto 0) of pixel; 
 type	line_disparity is array(Width - 1 downto 0) of std_logic_vector(7 downto 0);

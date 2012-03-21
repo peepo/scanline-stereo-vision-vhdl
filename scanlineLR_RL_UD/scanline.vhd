@@ -94,10 +94,10 @@ architecture Behavioral of scanline is
 	signal GLOBAL_COST_PREV	: GlobalCosts_array;
 	signal LINE_RIGHT 		: Line_array;
 	signal LEFT_RL			: pixel;
-	signal dd				: std_logic_vector(DATA_WIDTH - 1 downto 0);
+	signal dd				: std_logic_vector(5 downto 0);
 	signal i				: std_logic_vector(1 downto 0);
 	signal b				: std_logic;
-	signal j				: int_640;
+	signal j				: int_640; 
 	signal z				: int_640;
 	signal LineRight0		: Line_array;
 	signal LineRight1		: Line_array;
@@ -330,47 +330,56 @@ begin
 					else
 						LocalCost := (LINE_RIGHT(k) - LEFT_RL);
 					end if;
---					if LocalCost = "XXXXXXXX" then
---						LocalCost := (others => '0');
---					end if;
 					LOCAL_COST(k) <= LocalCost;
 			end if;
 		end if;	
 	end process LOCAL_EX;
 end generate LOCAL_EX_loop;
 
-
 GLOBAL_EX_loop : for k in 1 to dmax-2 generate
 begin	
 	EX : process(PIPELINE_CLOCK) is
-		variable LP : LP_element ;
-		variable nn : int_64;
+		variable LP		: LP_element ;
+		variable GCP	: LP_element ;
+		variable nn		: int_64;
 	begin
 		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT then
 			if RESET = '1' or  FRAME_VALID_IN = '0'  then
 				GLOBAL_COST(k) <= (others => '0');
-				nn := 0;
-				LP := (others => '0');
+				nn	:= 0;
+				LP	:= (others => '0');
+				GCP	:= (others => '0');
 			elsif LINE_VALID_IN = '1' then
-				nn := k - 1;
+				nn	:= k - 1;
 				LP := GLOBAL_COST_PREV(k);
+				GCP := GLOBAL_COST_PREV(conv_integer(dd));
 				if(comparator(GLOBAL_COST_PREV(k - 1),GLOBAL_COST_PREV(k + 1))) then
 					nn := k + 1;
 				end if;
-				if(comparator(GLOBAL_COST_PREV(k),GLOBAL_COST_PREV(nn) + P1)) then
-					LP := GLOBAL_COST_PREV(nn) + P1;
+				if(comparator(LP,GLOBAL_COST_PREV(nn) + P1)) then
+					if(comparator(GLOBAL_COST_PREV(nn) + P1,P2 + GCP)) then
+						GLOBAL_COST(k) <= LOCAL_COST(k) + P2 ;
+					else
+						GLOBAL_COST(k) <= LOCAL_COST(k) + GLOBAL_COST_PREV(nn) + P1 - GCP;
+					end if;
+				else 	
+					if(comparator(LP,P2 + GCP)) then
+						GLOBAL_COST(k) <= LOCAL_COST(k) + P2  ;
+					else
+						GLOBAL_COST(k) <= LOCAL_COST(k) + LP - GCP;
+					end if;
 				end if;		
-				if(comparator(LP,P2 + GLOBAL_COST_PREV(conv_integer(dd)))) then
-					LP := P2 + GLOBAL_COST_PREV(conv_integer(dd));
-				end if;
-				GLOBAL_COST(k) <= LOCAL_COST(k) + LP - GLOBAL_COST_PREV(conv_integer(dd));
+
+--				GLOBAL_COST(k) <= LOCAL_COST(k) + LP - GCP;
 			end if; --RESET		
 		end if; --PIXEL_CLOCK
 	end process EX;
 end generate GLOBAL_EX_loop;
 
+
 EX0 : process(PIPELINE_CLOCK) is
 	variable LP : LP_element := (others => '0');
+	variable GCP	: LP_element ;
 begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or  FRAME_VALID_IN = '0'  then
@@ -378,19 +387,21 @@ begin
 				LP := (others => '0');				
 		elsif LINE_VALID_IN = '1'  then
 			LP := GLOBAL_COST_PREV(0);
+			GCP := GLOBAL_COST_PREV(conv_integer(dd));
 			if(comparator(LP,GLOBAL_COST_PREV(1) + P1)) then
 				LP := GLOBAL_COST_PREV(1) + P1;
 			end if;				
-			if(comparator(LP,P2 + GLOBAL_COST_PREV(conv_integer(dd)))) then
-				LP := P2 + GLOBAL_COST_PREV(conv_integer(dd));
+			if(comparator(LP,P2 + GCP)) then
+				LP := P2 + GCP;
 			end if;
-			GLOBAL_COST(0) <= LOCAL_COST(0) + LP - GLOBAL_COST_PREV(conv_integer(dd));
+			GLOBAL_COST(0) <= LOCAL_COST(0) + LP - GCP;
 		end if; --RESET		
 	end if; --PIXEL_CLOCK
 end process EX0;
 
 EXDmax : process(PIPELINE_CLOCK) is
 	variable LP : LP_element := (others => '0');
+	variable GCP	: LP_element ;
 begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or  FRAME_VALID_IN = '0'  then
@@ -398,13 +409,14 @@ begin
 			GLOBAL_COST(dmax - 1) <= (others => '0');
 		elsif LINE_VALID_IN = '1'  then
 			LP := GLOBAL_COST_PREV(dmax - 1);
+			GCP := GLOBAL_COST_PREV(conv_integer(dd));
 			if(comparator(GLOBAL_COST_PREV(dmax - 1),GLOBAL_COST_PREV(dmax - 2) + P1)) then
 				LP := GLOBAL_COST_PREV(dmax - 2) + P1;
 			end if;				
-			if(comparator(LP,P2 + GLOBAL_COST_PREV(conv_integer(dd)))) then
-				LP := P2 + GLOBAL_COST_PREV(conv_integer(dd));
+			if(comparator(LP,P2 + GCP)) then
+				LP := P2 + GCP ;
 			end if;
-			GLOBAL_COST(dmax - 1) <= LOCAL_COST(dmax - 1) + LP - GLOBAL_COST_PREV(conv_integer(dd));
+			GLOBAL_COST(dmax - 1) <= LOCAL_COST(dmax - 1) + LP - GCP;
 		end if; --RESET		
 	end if; --PIXEL_CLOCK
 end process EXDmax;
@@ -462,31 +474,31 @@ begin
         end process DPL01;
 end generate PL1;
 
-GCP : process(PIPELINE_CLOCK) is	
+GCPP : process(PIPELINE_CLOCK) is	
 	variable GlobalCostRL	: GlobalCosts_array;
 	variable GlobalCostLR	: GlobalCosts_array;
 	variable GlobalCostUD 	: GlobalCosts_array;
 	variable GlobalCost3	: GlobalCosts_array;
---	variable GlobalCost8	: GlobalCosts_array;
 begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 		if RESET = '1' or  FRAME_VALID_IN = '0'  then
 			GLOBAL_COST_PREV <= (others => (others => '0'));
-			D_GC_3_IN <= (others => (others => '0'));
+			D_GC_3_IN	<= (others => (others => '0'));
+			D_GC_UD_IN	<= (others => (others => '0'));
 			GlobalCostRL :=	(others =>(others => '0'));
 			GlobalCostUD :=	(others =>(others => '0'));
 			GlobalCostLR :=	(others =>(others => '0'));
 			GlobalCost3	:=	(others =>(others => '0'));
---			GlobalCost8 :=	(others =>(others => '0'));
 		elsif LINE_VALID_IN = '1'   then
-			if  i = "00" then								
-				D_GC_UD_IN				<= GLOBAL_COST;
-				GLOBAL_COST_PREV	<= GlobalCostRL;
 				if first_line = "00" then
 					GlobalCostUD := (others =>(others => '0'));             
 				else
 					GlobalCostUD := D_GC_UD_OUT;
 				end if;
+			if  i = "00" then								
+				D_GC_UD_IN			<= GLOBAL_COST;
+				GLOBAL_COST_PREV	<= GlobalCostRL;
+
 				if conf /= "011" then
 					for k in 0 to dmax - 1 loop
 						GlobalCost3(k) := GlobalCost3(k) + GlobalCostUD(k)(7 downto 2);
@@ -495,7 +507,6 @@ begin
 
 			elsif  i = "01" then								
 				GlobalCostLR := GLOBAL_COST;
---				GlobalCost8 := GlobalCostLR;
 				if conf /= "001" then
 					for k in 0 to dmax - 1 loop
 						GlobalCost3(k) := GlobalCost3(k) + GlobalCostLR(k)(7 downto 2);
@@ -513,76 +524,77 @@ begin
 						GlobalCost3(k) := D_GC_3_OUT(k) + GlobalCostRL(k)(7 downto 2);
 					end loop;				
 				end if;
+				GLOBAL_COST_TRE <= GlobalCost3;
 			elsif  i = "11" then								
 				GLOBAL_COST_PREV <= GlobalCostLR;
 				GlobalCost3 := (others =>(others => '0'));
---				GlobalCost8 := (others =>(others => '0'));				
 			end if;
 
-			GLOBAL_COST_TRE <= GlobalCost3;
-			
 		end if;
 	end if;
-end process GCP;
+end process GCPP;
 
-
-DISP : process(PIPELINE_CLOCK) is	
-	variable d				: int_64;
-	variable dRL			: int_64;
-	variable dLR			: int_64;
-	variable dUD			: int_64;
-begin
+	DISP : process(PIPELINE_CLOCK) is       
+		variable d						: int_64;
+		variable dpl					: int_64;
+		variable dRL                    : int_64;
+		variable dLR                    : int_64;
+		variable dUD                    : int_64;
+	begin
 	if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
-		if RESET = '1' or  FRAME_VALID_IN = '0'  then
-			dd 			<= (others => '0');
-			DATA_OUT	<= (others => '0');
-			dUD := 0;
-			dRL := 0;
-			dLR := 0;
-			D_DISP_UD_IN	<= conv_std_logic_vector(0, DATA_WIDTH);
-			D_DISP_3_IN <= (others => '0');
-		elsif LINE_VALID_IN = '1'   then
-			d := 0;
-			for z in 0 to dmax / 16 - 1 loop
-					if(comparator1(GC1(d), GC1(z))) then
-							d := z;
-					end if;                         
-			end loop;
-			if  i = "00" then								
-				dRL := dpl1(d);
-				dd <= conv_std_logic_vector(dRL, DATA_WIDTH);
-			elsif  i = "01" then
-				if first_line = "00" then
-						D_DISP_3_IN		<= (others => '0');
-						DATA_OUT	<= (others => '0');
-				else
-						D_DISP_3_IN	<= conv_std_logic_vector(dpl1(d), DATA_WIDTH);
-				end if;
-				if (conf = "000" or conf = "101" or conf = "001" or conf = "011" or conf = "010" ) and first_line /= "00" then
-					DATA_OUT <= D_DISP_3_OUT(4 downto 0) & "000";
-				end if;
-			elsif  i = "10" then
-				D_DISP_UD_IN	<= conv_std_logic_vector(dpl1(d), DATA_WIDTH);
-				if first_line = "00" then				
+			if RESET = '1' or  FRAME_VALID_IN = '0'  then
+					dd              <= (others => '0');
+					DATA_OUT        <= (others => '0');
+					dpl := 0;
 					dUD := 0;
-				else
-					dUD := conv_integer(D_DISP_UD_OUT);
-				end if;
-				
-				if conf = "110" and first_line /= "00" then
-					DATA_OUT <= conv_std_logic_vector(dUD, 5) & "000";					
-				end if;
-				
-				dd <= conv_std_logic_vector(dUD, DATA_WIDTH);
-			elsif  i = "11" then
-				dLR := dpl1(d);
-				if conf = "100" and first_line /= "00" then
-					DATA_OUT <= conv_std_logic_vector(dLR, 5) & "000";					
-				end if;
-				dd <= conv_std_logic_vector(dLR, DATA_WIDTH);
-			end if;	--i
-		end if;	--line valid
-	end if;	--reset
+					dRL := 0;
+					dLR := 0;
+					D_DISP_UD_IN    <= conv_std_logic_vector(0, DATA_WIDTH);
+					D_DISP_3_IN <= (others => '0');
+			elsif LINE_VALID_IN = '1'   then
+					d := 0;
+					for z in 0 to dmax / 16 - 1 loop
+						if(comparator1(GC1(d), GC1(z))) then
+									d := z;
+						end if;                         
+					end loop;
+					dpl := dpl1(d);
+					if  i = "00" then                                                               
+							dRL := dpl;
+							dd <= conv_std_logic_vector(dRL, 6);
+					elsif  i = "01" then
+							if first_line = "00" then
+									D_DISP_3_IN             <= (others => '0');
+									DATA_OUT        <= (others => '0');
+							else
+									D_DISP_3_IN     <= conv_std_logic_vector(dpl, 8);
+							end if;
+							if (conf = "000" or conf = "101" or conf = "001" or conf = "011" or conf = "010" ) and first_line /= "00" then
+									DATA_OUT <= D_DISP_3_OUT(4 downto 0) & "000";
+							end if;
+					elsif  i = "10" then
+							D_DISP_UD_IN    <= conv_std_logic_vector(dpl, 8);
+							if first_line = "00" then                               
+									dUD := 0;
+							else
+									dUD := conv_integer(D_DISP_UD_OUT);
+							end if;
+							
+							if conf = "110" and first_line /= "00" then
+									DATA_OUT <= conv_std_logic_vector(dUD, 5) & "000";
+							end if;
+							
+							dd <= conv_std_logic_vector(dUD, 6);
+					elsif  i = "11" then
+							dLR := dpl;
+							if conf = "100" and first_line /= "00" then
+									DATA_OUT <= conv_std_logic_vector(dLR, 5) & "000";
+							end if;
+							dd <= conv_std_logic_vector(dLR, 6);
+					end if; --i
+			end if; --line valid
+	end if; --reset
 end process DISP;
+
 
 end Behavioral;	
