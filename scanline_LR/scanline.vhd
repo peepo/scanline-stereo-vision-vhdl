@@ -24,12 +24,12 @@ architecture Behavioral of scanline is
 
 	function comparator(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-		return A(7 downto 0) > B(7 downto 0);
+		return A(7 downto 5) > B(7 downto 5);
 	end comparator;
 	
 	function comparator1(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-		return A(7 downto 0) > B(7 downto 0);
+		return A(7 downto 2) > B(7 downto 2);
 	end comparator1;
 
 	signal LOCAL_COST 		: GlobalCosts_array;
@@ -135,31 +135,69 @@ end generate LOCAL_EX_loop;
 GLOBAL_EX_loop : for k in 1 to dmax-2 generate
 begin	
 	EX : process(PIPELINE_CLOCK) is
-		variable LP : LP_element ;
-		variable nn : int_64;
+		variable LP		: LP_element ;
+		variable GCP	: LP_element ;
+		variable nn		: int_64;
 	begin
 		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT then
-			if RESET = '1' then
+			if RESET = '1' or  FRAME_VALID_IN = '0'  then
 				GLOBAL_COST(k) <= (others => '0');
-				nn := 0;
-				LP := (others => '0');
+				nn	:= 0;
+				LP	:= (others => '0');
+				GCP	:= (others => '0');
 			elsif LINE_VALID_IN = '1' then
-				nn := k - 1;
+				nn	:= k - 1;
 				LP := GLOBAL_COST_PREV(k);
+				GCP := GLOBAL_COST_PREV(conv_integer(dd));
 				if(comparator(GLOBAL_COST_PREV(k - 1),GLOBAL_COST_PREV(k + 1))) then
 					nn := k + 1;
 				end if;
-				if(comparator(GLOBAL_COST_PREV(k),GLOBAL_COST_PREV(nn) + P1)) then
-					LP := GLOBAL_COST_PREV(nn) + P1;
+				if(comparator(LP,GLOBAL_COST_PREV(nn) + P1)) then
+					if(comparator(GLOBAL_COST_PREV(nn) + P1,P2 + GCP)) then
+						GLOBAL_COST(k) <= LOCAL_COST(k) + P2 ;
+					else
+						GLOBAL_COST(k) <= LOCAL_COST(k) + GLOBAL_COST_PREV(nn) + P1 - GCP;
+					end if;
+				else 	
+					if(comparator(LP,P2 + GCP)) then
+						GLOBAL_COST(k) <= LOCAL_COST(k) + P2  ;
+					else
+						GLOBAL_COST(k) <= LOCAL_COST(k) + LP - GCP;
+					end if;
 				end if;		
-				if(comparator(LP,P2 + GLOBAL_COST_PREV(conv_integer(dd)))) then
-					LP := P2 + GLOBAL_COST_PREV(conv_integer(dd));
-				end if;
-				GLOBAL_COST(k) <= LOCAL_COST(k) + LP - GLOBAL_COST_PREV(conv_integer(dd));
 			end if; --RESET		
 		end if; --PIXEL_CLOCK
 	end process EX;
 end generate GLOBAL_EX_loop;
+
+--GLOBAL_EX_loop : for k in 1 to dmax-2 generate
+--begin	
+--	EX : process(PIPELINE_CLOCK) is
+--		variable LP : LP_element ;
+--		variable nn : int_64;
+--	begin
+--		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT then
+--			if RESET = '1' then
+--				GLOBAL_COST(k) <= (others => '0');
+--				nn := 0;
+--				LP := (others => '0');
+--			elsif LINE_VALID_IN = '1' then
+--				nn := k - 1;
+--				LP := GLOBAL_COST_PREV(k);
+--				if(comparator(GLOBAL_COST_PREV(k - 1),GLOBAL_COST_PREV(k + 1))) then
+--					nn := k + 1;
+--				end if;
+--				if(comparator(GLOBAL_COST_PREV(k),GLOBAL_COST_PREV(nn) + P1)) then
+--					LP := GLOBAL_COST_PREV(nn) + P1;
+--				end if;		
+--				if(comparator(LP,P2 + GLOBAL_COST_PREV(conv_integer(dd)))) then
+--					LP := P2 + GLOBAL_COST_PREV(conv_integer(dd));
+--				end if;
+--				GLOBAL_COST(k) <= LOCAL_COST(k) + LP - GLOBAL_COST_PREV(conv_integer(dd));
+--			end if; --RESET		
+--		end if; --PIXEL_CLOCK
+--	end process EX;
+--end generate GLOBAL_EX_loop;
 
 EX0 : process(PIPELINE_CLOCK) is
 	variable LP : LP_element := (others => '0');
@@ -197,28 +235,28 @@ begin
 				LP := P2 + GLOBAL_COST_PREV(conv_integer(dd));
 			end if;
 			GLOBAL_COST(dmax - 1) <= LOCAL_COST(dmax - 1) + LP - GLOBAL_COST_PREV(conv_integer(dd));
-		end if; --RESET		
+		end if; --RESET
 	end if; --PIXEL_CLOCK
 end process EXDmax;
 
 PL0 : for k in 0 to dmax/4 - 1 generate
 begin
 	DPL00 : process(PIPELINE_CLOCK) is	
-	variable d	: int_64;
+	variable d	: int_4;
 	begin
 		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 			if RESET = '1' then
 				dpl0(k)	<= 0;
 				GC0(k)	<= (others => '0');
 			elsif LINE_VALID_IN = '1' then	
-				d := k * 4;
-				for z in k * 4  to (k + 1) * 4 - 1 loop
-					if(comparator1(GLOBAL_COST(d), GLOBAL_COST(z))) then
+				d := 0;
+				for z in 1  to  3 loop
+					if(comparator1(GLOBAL_COST(d + k * 4), GLOBAL_COST(z + k * 4))) then
 						d := z;
 					end if;
 				end loop;				
 				dpl0(k)	<= d;
-				GC0(k)	<= GLOBAL_COST(d);
+				GC0(k)	<= GLOBAL_COST(d + k * 4)(7 downto (7 - apr));
 			end if;
 		end if;	
 	end process DPL00;
@@ -227,26 +265,25 @@ end generate PL0;
 PL1 : for k in 0 to dmax/16 - 1 generate
 begin
 	DPL01 : process(PIPELINE_CLOCK) is	
-	variable d	: int_64;
+	variable d	: int_4;
 	begin
 		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 			if RESET = '1' then
 				dpl1(k)	<= 0;
 				GC1(k)	<= (others => '0');
 			elsif LINE_VALID_IN = '1' then					
-				d := k * 4;
-				for z in k * 4 to (k + 1) * 4 - 1 loop
-					if(comparator1(GC0(d), GC0(z))) then
+				d := 0;
+				for z in 1 to 3 loop
+					if(GC0(d + k * 4)> GC0(z + k * 4)) then
 						d := z;
 					end if;
-				end loop;				
-				dpl1(k)	<= dpl0(d);
-				GC1(k)	<= GC0(d);							
+				end loop;
+				dpl1(k)	<= dpl0(d + k * 4) + d * 4;
+				GC1(k)	<= GC0(d + k * 4);
 			end if;
-		end if;		
+		end if;
 	end process DPL01;
 end generate PL1;
-
 
 DISP : process(PIPELINE_CLOCK) is	
 	variable d		: int_64;
@@ -261,21 +298,15 @@ begin
 			dd <= (others => '0');
 		elsif LINE_VALID_IN = '1'  then	
 			d := 0;
-			for z in 0 to dmax / 32 -1 loop
-				if(comparator1(GC1(d), GC1(z))) then
+			for z in 0 to dmax / 16 - 1 loop
+				if(GC1(d) > GC1(z)) then
 					d := z;
 				end if;				
 			end loop;
-			d := dpl1(d);
+			d := dpl1(d) + d * 16;
 			
-			if i = "00" then
-				GLOBAL_COST_PREV <= (others =>(others => '1'));			
-			elsif i = "01" then
+			if i = "01" then
 				GlobalCostLR := GLOBAL_COST;
-				GLOBAL_COST_PREV <= (others =>(others => '1'));
-			elsif i = "10" then
-				GLOBAL_COST_PREV <= (others =>(others => '0'));
-				dd <= conv_std_logic_vector(8, 6);
 			elsif i= "11" then
 				GLOBAL_COST_PREV <= GlobalCostLR;
 				dLR := d;
