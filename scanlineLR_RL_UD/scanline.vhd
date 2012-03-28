@@ -56,8 +56,8 @@ architecture Behavioral of scanline is
 
 	signal ADDR_DISP_UD_IN	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
 	signal ADDR_DISP_UD_OUT	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
-	signal D_DISP_UD_IN	: std_logic_vector	(DATA_WIDTH - 1 downto 0 );
-	signal D_DISP_UD_OUT	: std_logic_vector	(DATA_WIDTH - 1 downto 0 );
+	signal D_DISP_UD_IN	: std_logic_vector	(5 downto 0 );
+	signal D_DISP_UD_OUT	: std_logic_vector	(5 downto 0 );
 
 	signal ADDR_PIXEL_LEFT_RL_IN	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
 	signal ADDR_PIXEL_LEFT_RL_OUT	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
@@ -70,8 +70,8 @@ architecture Behavioral of scanline is
 	signal D_PIXEL_RIGHT_RL_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
 
 	signal ADDR_DISP_3	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal D_DISP_3_IN		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	signal D_DISP_3_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal D_DISP_3_IN		: std_logic_vector (5 downto 0 );
+	signal D_DISP_3_OUT	: std_logic_vector (5 downto 0 );
 
 	signal LOCAL_COST 		: GlobalCosts_array;
 	signal GLOBAL_COST 		: GlobalCosts_array;
@@ -99,7 +99,7 @@ architecture Behavioral of scanline is
 	end comparator;
 	function comparator1(A: std_logic_vector(7 downto 0); B: std_logic_vector(7 downto 0)) return boolean is
 	begin
-			return A(7 downto (7 - apr)) > B(7 downto (7 - apr));
+			return A(7 downto 2) > B(7 downto 2);
 	end comparator1;
 begin
 
@@ -128,7 +128,7 @@ begin
 end generate BRAM_loop;
 
 BramLineDispUD : BRAM_WF
-	generic map (N => DATA_WIDTH)
+	generic map (6)
 	port map(
 		clk => PIXEL_CLOCK,
 		we =>'1',
@@ -160,7 +160,7 @@ BramLineRight : BRAM_WF
 	);
 		
 BramLineDisp : BRAM_RF
-	generic map (N => DATA_WIDTH)
+	generic map (6)
 	port map(
 		clk => PIXEL_CLOCK,
 		we =>'1',
@@ -397,7 +397,7 @@ end process EXDmax;
 PL0 : for k in 0 to dmax/4 - 1 generate
 begin
 	DPL00 : process(PIPELINE_CLOCK) is      
-	variable d              : int_4;
+	variable d              : int_64;
 	variable GlobalCost     : GlobalCosts_array;
 	begin
 		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
@@ -411,15 +411,14 @@ begin
 				else
 					GlobalCost := GLOBAL_COST;
 				end if;
-				d := 0;
-				for z in 1 to 3 loop
-					if(comparator1(GlobalCost(4 * k + d), GlobalCost(4 * k + z))) then
+				d := 4 * k;
+				for z in 4 * k + 1 to 4 * k + 3 loop
+					if(comparator1(GlobalCost(d), GlobalCost(z))) then
 						d := z;
 					end if;
 				end loop;                               
-				dpl0(k) <= d;
---				GC0(k)  <= GlobalCost(4 * k + d)(7 downto (7 - apr));
-				GC0(k)  <= GlobalCost(4 * k + d);
+				dpl0(k) <= d - 4 * k;
+				GC0(k)  <= GlobalCost(d);
 			end if;
 		end if; 
 	end process DPL00;
@@ -428,21 +427,21 @@ end generate PL0;
 PL1 : for k in 0 to dmax/16 - 1 generate
 begin
 	DPL01 : process(PIPELINE_CLOCK) is      
-	variable d      : int_4;
+	variable d      : int_64;
 	begin
 		if PIPELINE_CLOCK = '1' and PIPELINE_CLOCK'EVENT  then
 			if RESET = '1' or  FRAME_VALID_IN = '0'  then
 				dpl1(k) <= 0;
 				GC1(k)  <= (others => '0');
 			elsif LINE_VALID_IN = '1' then                                  
-				d := 0;
-				for z in 1 to 3 loop
-					if(GC0(k * 4 + d)> GC0(k * 4 + z)) then
+				d := k * 4;
+				for z in k * 4 + 1 to k * 4 + 3 loop
+					if comparator1(GC0(d), GC0(z)) then
 						d := z;
 					end if;
 				end loop;                               
-				dpl1(k) <= 4 * d + dpl0(k * 4 + d);
-				GC1(k)  <= GC0(k * 4 + d);                                                      
+				dpl1(k) <= 4 * (d - k * 4) + dpl0(d);
+				GC1(k)  <= GC0(d);                                                      
 			end if;
 		end if;         
 	end process DPL01;
@@ -463,8 +462,8 @@ DISP : process(PIPELINE_CLOCK) is
 			dUD := 0;
 			dRL := 0;
 			dLR := 0;
-			D_DISP_UD_IN    <= conv_std_logic_vector(0, DATA_WIDTH);
-			D_DISP_3_IN <= (others => '0');
+			D_DISP_UD_IN	<= (others => '0');
+			D_DISP_3_IN		<= (others => '0');
 		elsif LINE_VALID_IN = '1'   then
 			d := 0;
 			for z in 0 to dmax / 16 - 1 loop
@@ -481,13 +480,13 @@ DISP : process(PIPELINE_CLOCK) is
 					D_DISP_3_IN		<= (others => '0');
 					DATA_OUT		<= (others => '0');
 				else
-					D_DISP_3_IN     <= conv_std_logic_vector(dpl, 8);
+					D_DISP_3_IN     <= conv_std_logic_vector(dpl, 6);
 				end if;
 				if (conf = "000" or conf = "101" or conf = "001" or conf = "011" or conf = "010" ) and FIRST_LINE /= "00" then
-					DATA_OUT <= D_DISP_3_OUT(4 downto 0) & "000";
+					DATA_OUT <= D_DISP_3_OUT & "00";
 				end if;
 			elsif  i = "10" then
-				D_DISP_UD_IN    <= conv_std_logic_vector(dpl, 8);
+				D_DISP_UD_IN    <= conv_std_logic_vector(dpl, 6);
 				if FIRST_LINE = "00" then                               
 					dUD := 0;
 				else
@@ -495,14 +494,14 @@ DISP : process(PIPELINE_CLOCK) is
 				end if;
 				
 				if conf = "110" and FIRST_LINE /= "00" then
-					DATA_OUT <= conv_std_logic_vector(dUD, 5) & "000";
+					DATA_OUT <= conv_std_logic_vector(dUD, 6) & "00";
 				end if;
 				
 				dd <= conv_std_logic_vector(dUD, 6);
 			elsif  i = "11" then
 				dLR := dpl;
 				if conf = "100" and FIRST_LINE /= "00" then
-					DATA_OUT <= conv_std_logic_vector(dLR, 5) & "000";
+					DATA_OUT <= conv_std_logic_vector(dLR, 6) & "00";
 				end if;
 				dd <= conv_std_logic_vector(dLR, 6);
 			end if; --i

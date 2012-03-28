@@ -123,6 +123,43 @@ begin
 		WriteFile_L("disparityMap.bmp");
 		
 		wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+-----------------------------------------------------------------------------------
+		--Lettura del file bmp (immagine RGB (24 bit) anche per greyscale)
+		ReadFile_L("imageL1.bmp");
+		ReadFile_R("imageR1.bmp");
+
+		--Queste due chiamate restituiscono Width e Height del bmp appena aperto
+		GetWidth_L(ImageWidth);
+		GetHeigth_L(ImageHeight);
+		
+		wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+
+		FRAME_VALID_IN <= '1';		
+		wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+		for y in 0 to ImageHeight-1 loop 
+			LINE_VALID_IN <= '1';
+			for x in 0 to ImageWidth-1 loop
+				--questa chiamata inserisce in data il valore del pixel in bianco e nero
+				GetGrayPixel_L(x, y, LEFT);
+				GetGrayPixel_R(x, y, RIGHT);
+				--questa chiamata inserisce nell'immagine in uscita il valore del pixel 
+				--passato con data
+				SetGrayPixel_L(x, y, DATA_OUT);
+				wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+			end loop;
+			LINE_VALID_IN <= '0';
+			wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+		end loop;
+		
+		FRAME_VALID_IN <= '0';
+		
+		wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+		report "Scrittura completata";
+		--scrivo il file in uscita
+		WriteFile_L("disparityMap1.bmp");
+		
+		wait until PIXEL_CLOCK'event and PIXEL_CLOCK = '1';
+
 		
 		wait;
 	end process;
