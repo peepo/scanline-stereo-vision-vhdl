@@ -23,10 +23,10 @@ constant Width		: integer := 640;
 constant Hight		: integer := 480;
 
 constant P1			: integer := 10; 
-constant P2			: integer := 40;  
-constant ADDR_WIDTH	: integer := 10;  
+constant P2			: integer := 40;
+constant ADDR_WIDTH	: integer := 10;
 constant DATA_WIDTH	: integer := 8;
-
+ 
 constant apr		: integer := 5;
 
 subtype LP_element is std_logic_vector(7 downto 0);

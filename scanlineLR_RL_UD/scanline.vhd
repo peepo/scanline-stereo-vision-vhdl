@@ -23,55 +23,54 @@ end scanline;
 architecture Behavioral of scanline is
 
 	component BRAM_RF is
-	generic (N : integer);
 	port (
-		clk: in std_logic;
-		we: in std_logic;
-		addr_a: in std_logic_vector (ADDR_WIDTH - 1 downto 0);
-		din: in std_logic_vector (N - 1 downto 0 );
-		dout: out std_logic_vector (N - 1 downto 0 )
+		CLKA	: IN STD_LOGIC;
+		WEA		: IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+		ADDRA	: IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+		DINA	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		douta	: OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
 	);
 	end component;
 	
 	component BRAM_WF is	
-	generic (N : integer);
 	port (
-		CLK		: in std_logic;
-		WE		: in std_logic;
-		ADDR_A	: in std_logic_vector		(ADDR_WIDTH - 1 downto 0);
-		ADDR_B	: in std_logic_vector		(ADDR_WIDTH - 1 downto 0);
-		DIN_A	: in std_logic_vector		(N - 1 downto 0 );
-		DOUT_B	: out std_logic_vector	(N - 1 downto 0 )
+		CLKA	: IN STD_LOGIC;
+		WEA		: IN STD_LOGIC_VECTOR(0 DOWNTO 0);
+		ADDRA	: IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+		DINA	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
+		CLKB	: IN STD_LOGIC;
+		ADDRB	: IN STD_LOGIC_VECTOR(9 DOWNTO 0);
+		DOUTB	: OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
 	);
 	end component;
 
 	signal ADDR_CG_UD_IN	: Address_Width_array;
 	signal ADDR_CG_UD_OUT	: Address_Width_array;
-	signal D_GC_UD_IN	: GlobalCosts_array;
-	signal D_GC_UD_OUT	: GlobalCosts_array;
+	signal D_GC_UD_IN		: GlobalCosts_array;
+	signal D_GC_UD_OUT		: GlobalCosts_array;
 
 	signal ADDR_GC_3_IN_OUT	: Address_Width_array;
-	signal D_GC_3_IN	: GlobalCosts_array;
-	signal D_GC_3_OUT	: GlobalCosts_array;
+	signal D_GC_3_IN		: GlobalCosts_array;
+	signal D_GC_3_OUT		: GlobalCosts_array;
 
 	signal ADDR_DISP_UD_IN	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
 	signal ADDR_DISP_UD_OUT	: std_logic_vector	(ADDR_WIDTH - 1 downto 0);
-	signal D_DISP_UD_IN	: std_logic_vector	(5 downto 0 );
-	signal D_DISP_UD_OUT	: std_logic_vector	(5 downto 0 );
+	signal D_DISP_UD_IN		: std_logic_vector	(7 downto 0 );
+	signal D_DISP_UD_OUT	: std_logic_vector	(7 downto 0 );
 
 	signal ADDR_PIXEL_LEFT_RL_IN	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
 	signal ADDR_PIXEL_LEFT_RL_OUT	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
 	signal D_PIXEL_LEFT_RL_IN		:  std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	signal D_PIXEL_LEFT_RL_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal D_PIXEL_LEFT_RL_OUT		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
 	
 	signal ADDR_PIXEL_RIGHT_RL_IN	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
 	signal ADDR_PIXEL_RIGHT_RL_OUT	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
 	signal D_PIXEL_RIGHT_RL_IN		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
-	signal D_PIXEL_RIGHT_RL_OUT	: std_logic_vector (DATA_WIDTH - 1 downto 0 );
+	signal D_PIXEL_RIGHT_RL_OUT		: std_logic_vector (DATA_WIDTH - 1 downto 0 );
 
-	signal ADDR_DISP_3	: std_logic_vector (ADDR_WIDTH - 1 downto 0);
-	signal D_DISP_3_IN		: std_logic_vector (5 downto 0 );
-	signal D_DISP_3_OUT	: std_logic_vector (5 downto 0 );
+	signal ADDR_DISP_3		: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+	signal D_DISP_3_IN		: std_logic_vector (7 downto 0 );
+	signal D_DISP_3_OUT		: std_logic_vector (7 downto 0 );
 
 	signal LOCAL_COST 		: GlobalCosts_array;
 	signal GLOBAL_COST 		: GlobalCosts_array;
@@ -106,67 +105,64 @@ begin
 BRAM_loop : for k in 0 to dmax-1 generate
 begin
 	BramLineGlobalCostUD : BRAM_WF
-		generic map (N => DATA_WIDTH)
 		port map(
-			CLK		=> PIXEL_CLOCK,
-			WE		=> '1',
-			ADDR_A	=> ADDR_CG_UD_IN(k),
-			ADDR_B	=> ADDR_CG_UD_OUT(k),
-			DIN_A	=> D_GC_UD_IN(k),
-			DOUT_B	=> D_GC_UD_OUT(k)
+			CLKA		=> PIXEL_CLOCK,
+			CLKB		=> PIXEL_CLOCK,
+			WEA		=> "1",
+			ADDRA	=> ADDR_CG_UD_IN(k),
+			ADDRB	=> ADDR_CG_UD_OUT(k),
+			DINA	=> D_GC_UD_IN(k),
+			DOUTB	=> D_GC_UD_OUT(k)
 		);
 	
 	BramLineGlobalCostSum : BRAM_RF
-		generic map (N => DATA_WIDTH)
 		port map(
-			CLK		=> PIXEL_CLOCK,
-			WE		=> '1',
-			ADDR_A	=> ADDR_GC_3_IN_OUT(k),
-			DIN		=> D_GC_3_IN(k),
-			DOUT	=> D_GC_3_OUT(k)
+			CLKA		=> PIXEL_CLOCK,
+			WEA		=> "1",
+			ADDRA	=> ADDR_GC_3_IN_OUT(k),
+			DINA	=> D_GC_3_IN(k),
+			DOUTA	=> D_GC_3_OUT(k)
 		);
 end generate BRAM_loop;
 
 BramLineDispUD : BRAM_WF
-	generic map (6)
 	port map(
-		clk => PIXEL_CLOCK,
-		we =>'1',
-		addr_a => ADDR_DISP_UD_IN,
-		addr_b => ADDR_DISP_UD_OUT,
-		din_a=> D_DISP_UD_IN,
-		dout_b=> D_DISP_UD_OUT 
+		CLKA	=> PIXEL_CLOCK,
+		CLKB	=> PIXEL_CLOCK,
+		WEA		=> "1",
+		ADDRA	=> ADDR_DISP_UD_IN,
+		ADDRB	=> ADDR_DISP_UD_OUT,
+		DINA	=> D_DISP_UD_IN,
+		DOUTB	=> D_DISP_UD_OUT 
 	);
 
 BramLineLeft : BRAM_RF
-	generic map (N => DATA_WIDTH)
 	port map(
-		clk => PIXEL_CLOCK,
-		we =>'1',
-		addr_a => ADDR_PIXEL_LEFT_RL_IN,
-		din=> D_PIXEL_LEFT_RL_IN ,
-		dout=> D_PIXEL_LEFT_RL_OUT 
+		CLKA	=> PIXEL_CLOCK,
+		WEA		=> "1",
+		ADDRA	=> ADDR_PIXEL_LEFT_RL_IN,
+		DINA	=> D_PIXEL_LEFT_RL_IN ,
+		DOUTA	=> D_PIXEL_LEFT_RL_OUT 
 	);
 
 BramLineRight : BRAM_WF
-	generic map (N => DATA_WIDTH)
 	port map(
-		clk => PIXEL_CLOCK,
-		we => '1',
-		addr_a => ADDR_PIXEL_RIGHT_RL_IN,
-		addr_b => ADDR_PIXEL_RIGHT_RL_OUT,
-		din_a => D_PIXEL_RIGHT_RL_IN ,
-		dout_b => D_PIXEL_RIGHT_RL_OUT 
+		CLKA	=> PIXEL_CLOCK,
+		CLKB	=> PIXEL_CLOCK,
+		WEA		=> "1",
+		ADDRA	=> ADDR_PIXEL_RIGHT_RL_IN,
+		ADDRB	=> ADDR_PIXEL_RIGHT_RL_OUT,
+		DINA	=> D_PIXEL_RIGHT_RL_IN ,
+		DOUTB	=> D_PIXEL_RIGHT_RL_OUT 
 	);
 		
 BramLineDisp : BRAM_RF
-	generic map (6)
 	port map(
-		clk => PIXEL_CLOCK,
-		we =>'1',
-		addr_a => ADDR_DISP_3,
-		din=> D_DISP_3_IN,
-		dout=> D_DISP_3_OUT 
+		CLKA	=> PIXEL_CLOCK,
+		WEA		=> "1",
+		ADDRA	=> ADDR_DISP_3,
+		DINA	=> D_DISP_3_IN,
+		DOUTA 	=> D_DISP_3_OUT 
 	);
 
 ID : process(PIXEL_CLOCK) is
@@ -480,13 +476,13 @@ DISP : process(PIPELINE_CLOCK) is
 					D_DISP_3_IN		<= (others => '0');
 					DATA_OUT		<= (others => '0');
 				else
-					D_DISP_3_IN     <= conv_std_logic_vector(dpl, 6);
+					D_DISP_3_IN     <= conv_std_logic_vector(dpl, 8);
 				end if;
 				if (conf = "000" or conf = "101" or conf = "001" or conf = "011" or conf = "010" ) and FIRST_LINE /= "00" then
-					DATA_OUT <= D_DISP_3_OUT & "00";
+					DATA_OUT <= D_DISP_3_OUT(5 downto 0) & "00";
 				end if;
 			elsif  i = "10" then
-				D_DISP_UD_IN    <= conv_std_logic_vector(dpl, 6);
+				D_DISP_UD_IN    <= conv_std_logic_vector(dpl, 8);
 				if FIRST_LINE = "00" then                               
 					dUD := 0;
 				else
