@@ -8,8 +8,5 @@
 <!-- Copyright (c) 1995-2011 Xilinx, Inc.  All rights reserved.    -->
 
 <messages>
-<msg type="info" file="ProjectMgmt" num="1061" ><arg fmt="%s" index="1">Parsing VHDL file &quot;C:/Users/x/Desktop/ce/scanline-stereo-vision-vhdl/scanlineLR_RL_UD/ipcore_dir/BRAM_RF.vhd&quot; into library work</arg>
-</msg>
-
 </messages>
 

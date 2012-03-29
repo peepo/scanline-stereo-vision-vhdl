@@ -16,7 +16,8 @@ entity scanline is
 		PIPELINE_CLOCK		: in  std_logic;    
 		DATA_OUT 			: out  std_logic_vector (7 downto 0);
 		FRAME_VALID_OUT 	: out  std_logic;
-		LINE_VALID_OUT 		: out  std_logic
+		LINE_VALID_OUT 		: out  std_logic;
+		PIXEL_VALID_OUT 	: out  std_logic
 	);
 end scanline;
 
@@ -38,7 +39,7 @@ architecture Behavioral of scanline is
 		WEA		: IN STD_LOGIC_VECTOR(0 DOWNTO 0);
 		ADDRA	: IN STD_LOGIC_VECTOR(9 DOWNTO 0);
 		DINA	: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-		CLKB	: IN STD_LOGIC;
+--		CLKB	: IN STD_LOGIC;
 		ADDRB	: IN STD_LOGIC_VECTOR(9 DOWNTO 0);
 		DOUTB	: OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
 	);
@@ -106,8 +107,8 @@ BRAM_loop : for k in 0 to dmax-1 generate
 begin
 	BramLineGlobalCostUD : BRAM_WF
 		port map(
-			CLKA		=> PIXEL_CLOCK,
-			CLKB		=> PIXEL_CLOCK,
+			CLKA	=> PIXEL_CLOCK,
+--			CLKB		=> PIXEL_CLOCK,
 			WEA		=> "1",
 			ADDRA	=> ADDR_CG_UD_IN(k),
 			ADDRB	=> ADDR_CG_UD_OUT(k),
@@ -117,7 +118,7 @@ begin
 	
 	BramLineGlobalCostSum : BRAM_RF
 		port map(
-			CLKA		=> PIXEL_CLOCK,
+			CLKA	=> PIXEL_CLOCK,
 			WEA		=> "1",
 			ADDRA	=> ADDR_GC_3_IN_OUT(k),
 			DINA	=> D_GC_3_IN(k),
@@ -128,7 +129,7 @@ end generate BRAM_loop;
 BramLineDispUD : BRAM_WF
 	port map(
 		CLKA	=> PIXEL_CLOCK,
-		CLKB	=> PIXEL_CLOCK,
+--		CLKB	=> PIXEL_CLOCK,
 		WEA		=> "1",
 		ADDRA	=> ADDR_DISP_UD_IN,
 		ADDRB	=> ADDR_DISP_UD_OUT,
@@ -148,7 +149,7 @@ BramLineLeft : BRAM_RF
 BramLineRight : BRAM_WF
 	port map(
 		CLKA	=> PIXEL_CLOCK,
-		CLKB	=> PIXEL_CLOCK,
+--		CLKB	=> PIXEL_CLOCK,
 		WEA		=> "1",
 		ADDRA	=> ADDR_PIXEL_RIGHT_RL_IN,
 		ADDRB	=> ADDR_PIXEL_RIGHT_RL_OUT,
@@ -172,6 +173,7 @@ begin
 		if RESET = '1' or  FRAME_VALID_IN = '0'  then
 			FRAME_VALID_OUT <= '0';
 			LINE_VALID_OUT <= '0';
+			PIXEL_VALID_OUT <= '0';
 			j <= 0;
 			z <= 0;
 			b <= '0';
@@ -186,6 +188,7 @@ begin
 				FRAME_VALID_OUT <= '1';
 				if LINE_VALID_IN = '1' then
 					LINE_VALID_OUT <= '1';					
+					PIXEL_VALID_OUT <= '1';					
 					j <= j + 1;
 					if b = '0' then
 						z <= j;
@@ -214,6 +217,7 @@ begin
 						end if;
 					end if;
 					LINE_VALID_OUT <= '0';					
+					PIXEL_VALID_OUT <= '0';					
 					j <= 0;
 				end if;
 		end if; --RESET			
@@ -563,4 +567,4 @@ begin
 	end if;
 end process GCPP;
 
-end Behavioral;	
+end Behavioral;

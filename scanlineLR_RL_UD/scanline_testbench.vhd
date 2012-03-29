@@ -23,7 +23,8 @@ architecture testbench of scanline_testbench is
 		  PIPELINE_CLOCK		: in std_logic;
 		  DATA_OUT 				: out  std_logic_vector (7 downto 0);
 		  FRAME_VALID_OUT 		: out  std_logic;
-		  LINE_VALID_OUT 		: out  std_logic
+		  LINE_VALID_OUT 		: out  std_logic;
+		  PIXEL_VALID_OUT 		: out  std_logic
 		);
 	end component;
 	
@@ -40,6 +41,7 @@ architecture testbench of scanline_testbench is
 	signal DATA_OUT 			: std_logic_vector (7 downto 0);
 	signal FRAME_VALID_OUT 		: std_logic;
 	signal LINE_VALID_OUT 		: std_logic;
+	signal PIXEL_VALID_OUT 		: std_logic;
 
 begin 
 	
@@ -54,7 +56,8 @@ begin
 			  PIPELINE_CLOCK	=>	PIPELINE_CLOCK,
 			  DATA_OUT			=>	DATA_OUT,
 			  FRAME_VALID_OUT	=>	FRAME_VALID_OUT,
-			  LINE_VALID_OUT	=>	LINE_VALID_OUT
+			  LINE_VALID_OUT	=>	LINE_VALID_OUT,
+			  PIXEL_VALID_OUT	=>	PIXEL_VALID_OUT
 			); 
 	
 --	process(PIXEL_CLOCK) is 
